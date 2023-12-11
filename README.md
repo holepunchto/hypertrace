@@ -1,11 +1,11 @@
-# holepunch-tracing
+# tracing
 
 Add tracing and insights to classes in modules
 
 ## Installation
 
 ```
-$ npm i @holepunch/tracing
+$ npm i @holepunchto/tracing
 ```
 
 ## Usage
