@@ -1,0 +1,16 @@
+{
+  "name": "tracing",
+  "version": "1.0.0",
+  "description": "Add tracing and insights to classes in modules",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "brittle": "^3.3.2"
+  }
+}
