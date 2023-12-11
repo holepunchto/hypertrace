@@ -22,7 +22,7 @@ export default class Tracer {
     traceFunction = undefined
   }
 
-  trace(data) {
+  trace(args) {
     if (!traceFunction) return
 
     const errorToGetContext = new Error()
@@ -30,17 +30,17 @@ export default class Tracer {
     const [_, functionName, absolutePath, line, column] = callLine.match(/.*at (.+) \(file\:\/\/(.+)\:(\d+)\:(\d+)\)/)
     // To simplify output, show relative path of executing file
     const sharedPath = longestSharedPath(absolutePath, process.cwd())
-    const filename = `${path.sep}${absolutePath.split(sharedPath)[1]}`
+    const filename = `${absolutePath.split(sharedPath)[1]}`
     const caller = {
       functionName,
-      filename,
+      filename: filename[0] === path.sep ? filename : `${path.sep}${filename}`,
       line: Number(line),
       column: Number(column)
     }
     if (this.className) caller.className = this.className
     if (this.objectId) caller.objectId = this.objectId
     traceFunction({
-      data: { ...data },
+      args: { ...args },
       caller
     })
   }

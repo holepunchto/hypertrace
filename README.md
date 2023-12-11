@@ -34,9 +34,9 @@ export default class SomeModule {
 import SomeModule from 'some-module'
 import Tracing from '@holepunchto/tracing'
 
-Tracing.setTraceFunction(({ caller, data}) => {
+Tracing.setTraceFunction(({ caller, args}) => {
   console.log(caller)
-  console.log(data)
+  console.log(args)
 })
 
 const mod = new SomeModule()
