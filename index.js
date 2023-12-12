@@ -1,13 +1,10 @@
-import path from 'path'
-
-let traceFunction
+const path = require('path')
 
 const objectIds = new Map()
 
-export default class Tracer {
+class Tracing {
   constructor(ctx) {
-    if (!ctx) return
-
+    if (!ctx) throw new Error('Context required, see @holepunchto/tracing documentation')
     this.className = ctx.constructor.name
     const currentObjectId = objectIds.get(ctx.constructor) || 0
     this.objectId = currentObjectId + 1
@@ -15,22 +12,27 @@ export default class Tracer {
   }
 
   static setTraceFunction(f) {
-    traceFunction = f
+    global[Symbol.for('holepunch-tracing')] = f
   }
 
   static clearTraceFunction() {
-    traceFunction = undefined
+    global[Symbol.for('holepunch-tracing')] = undefined
+  }
+
+  getObjectId() {
+    return this.objectId
   }
 
   trace(args) {
+    const traceFunction = global[Symbol.for('holepunch-tracing')]
     if (!traceFunction) return
 
     const errorToGetContext = new Error()
     const callLine = errorToGetContext.stack.split('\n')[2]
-    const [_, functionName, absolutePath, line, column] = callLine.match(/.*at (.+) \(file\:\/\/(.+)\:(\d+)\:(\d+)\)/)
-    // To simplify output, show relative path of executing file
+    const re = /.*at (.+) \((?:file\:\/:\/)?(.+)\:(\d+)\:(\d+)\)/
+    const [_, functionName, absolutePath, line, column] = callLine.match(re)
     const sharedPath = longestSharedPath(absolutePath, process.cwd())
-    const filename = `${absolutePath.split(sharedPath)[1]}`
+    const filename = `${absolutePath.split(sharedPath)[1]}` // To simplify output, show relative path of executing file
     const caller = {
       functionName,
       filename: filename[0] === path.sep ? filename : `${path.sep}${filename}`,
@@ -59,3 +61,5 @@ function longestSharedPath(pathA, pathB) {
 
   return sharedPath
 }
+
+module.exports = Tracing

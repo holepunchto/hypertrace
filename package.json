@@ -2,7 +2,6 @@
   "name": "tracing",
   "version": "1.0.0",
   "description": "Add tracing and insights to classes in modules",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "node test/test.js"

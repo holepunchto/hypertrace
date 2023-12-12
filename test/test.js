@@ -1,12 +1,13 @@
-import test from 'brittle'
-import Tracing from '../index.js'
-import SomeModule from './SomeModule.js'
+const test = require('brittle')
+const Tracing = require('../')
+const SomeModule = require('./SomeModule.js')
 
 function teardown() {
   Tracing.clearTraceFunction()
 }
 
 test('Caller is set', t => {
+  t.teardown(teardown)
   t.plan(6)
 
   const someModule = new SomeModule()
@@ -21,23 +22,98 @@ test('Caller is set', t => {
   })
 
   someModule.foo()
-
-  t.teardown(teardown)
 })
 
 test('Args are passed', t => {
+  t.teardown(teardown)
   t.plan(1)
 
   const someModule = new SomeModule()
-  const args = {
-    some: 'thing'
+  const someArgs = {
+    someProperty: Buffer.from('some value')
   }
 
   Tracing.setTraceFunction(({ args }) => {
-    t.is(args.some, 'thing')
+    t.is(args.someProperty, someArgs.someProperty)
   })
 
-  someModule.foo(args)
+  someModule.foo(someArgs)
+})
 
+test('ObjectId remains the same in an objects lifetime', t => {
   t.teardown(teardown)
+  t.plan(2)
+
+  const someModule = new SomeModule()
+
+  let firstObjectId
+  Tracing.setTraceFunction(({ caller }) => {
+    if (!firstObjectId) {
+      firstObjectId = caller.objectId
+    } else {
+      t.is(caller.objectId, firstObjectId)
+    }
+  })
+
+  someModule.foo()
+  someModule.foo()
+  someModule.foo()
+})
+
+test('ObjectId for a class starts at 1', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  class SomeClass {
+    constructor() {
+      this.tracing = new Tracing(this)
+    }
+
+    fun() {
+      this.tracing.trace()
+    }
+  }
+
+  const obj = new SomeClass()
+
+  Tracing.setTraceFunction(({ caller }) => {
+    t.is(caller.objectId, 1)
+  })
+
+  obj.fun()
+})
+
+test('ObjectId increases by one for same class', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  const someModule1 = new SomeModule()
+  const someModule2 = new SomeModule()
+
+  let firstObjectId
+  Tracing.setTraceFunction(({ caller }) => {
+    if (!firstObjectId) {
+      firstObjectId = caller.objectId
+    } else {
+      t.is(caller.objectId, firstObjectId + 1)
+    }
+  })
+
+  someModule1.foo()
+  someModule2.foo()
+})
+
+test('Object is able to read its own objectId', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  const someModule = new SomeModule()
+
+  let objectIdFromTracing
+  Tracing.setTraceFunction(({ caller }) => {
+    objectIdFromTracing = caller.objectId
+  })
+
+  const objectIdFromObject = someModule.getTracingObjectId() // The function returns this.tracing.getObjectId()
+  t.is(objectIdFromObject, objectIdFromTracing)
 })
