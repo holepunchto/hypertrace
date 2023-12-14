@@ -1,13 +1,7 @@
 const path = require('path')
-const http = require('http')
-const Prometheus = require('prom-client')
-
-const VALID_PROMETHEUS_LABEL_CHARACTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'
 
 const objectIds = new Map()
 const traceFunctionSymbol = Symbol.for('hypertrace.traceFunction')
-const traceCounterSymbol = Symbol.for('hypertrace.traceCounter')
-const allowedCustomPropertiesSymbol = Symbol.for('hypetrace.allowedCustomProperties')
 
 class Hypertrace {
   constructor (ctx, customProperties) {
@@ -33,57 +27,9 @@ class Hypertrace {
     return this.objectId
   }
 
-  static setPrometheusMonitoringTarget ({ port, allowedCustomProperties = [], collectDefaults = true }) {
-    const register = new Prometheus.Registry()
-
-    global[allowedCustomPropertiesSymbol] = allowedCustomProperties
-    const cleanedAllowedCustomProperties = allowedCustomProperties?.map(name => strToValidPrometheusLabel(name))
-    const labelNames = [
-      'caller_classname', 'caller_object_id', 'caller_functionname', 'caller_filename'
-    ].concat(cleanedAllowedCustomProperties)
-
-    const traceCounter = new Prometheus.Counter({
-      name: 'trace_counter',
-      help: 'Counts how many times a function has been traced',
-      labelNames
-    })
-    register.registerMetric(traceCounter)
-
-    if (collectDefaults) {
-      Prometheus.collectDefaultMetrics({ register })
-    }
-
-    const server = http.createServer(async (req, res) => {
-      const isMetricsEndpoint = req.url === '/metrics'
-      if (!isMetricsEndpoint) return res.end()
-
-      res.setHeader('Content-Type', register.contentType)
-      const metrics = await register.metrics()
-      res.end(metrics)
-    })
-    server.listen(port)
-
-    global[traceCounterSymbol] = {
-      traceCounter,
-      server,
-      register
-    }
-  }
-
-  static clearPrometheusMonitoringTarget () {
-    if (global[traceCounterSymbol]) {
-      global[traceCounterSymbol].server.close()
-      Prometheus.register.clear()
-    }
-
-    global[traceCounterSymbol] = undefined
-  }
-
   trace (args) {
     const traceFunction = global[traceFunctionSymbol]
-    const traceCounter = global[traceCounterSymbol]?.traceCounter
-    const allowedCustomProperties = global[allowedCustomPropertiesSymbol]
-    const shouldTrace = traceFunction || traceCounter
+    const shouldTrace = traceFunction
     if (!shouldTrace) return
 
     const errorToGetContext = new Error()
@@ -110,31 +56,11 @@ class Hypertrace {
       column: Number(column)
     }
 
-    if (traceFunction) {
-      traceFunction({
-        args: { ...args },
-        caller,
-        customProperties: this.customProperties
-      })
-    }
-
-    if (traceCounter) {
-      // Not adding line/column to this
-      const labels = {
-        caller_classname: this.className,
-        caller_object_id: this.objectId,
-        caller_functionname: realFunctionName,
-        caller_filename: realFilename
-      }
-      allowedCustomProperties?.forEach(name => {
-        const value = this.customProperties[name]
-        if (value !== undefined) {
-          const cleanedName = strToValidPrometheusLabel(name)
-          labels[cleanedName] = value
-        }
-      })
-      traceCounter.inc(labels)
-    }
+    traceFunction({
+      args: { ...args },
+      caller,
+      customProperties: this.customProperties
+    })
   }
 }
 
@@ -151,13 +77,6 @@ function longestSharedPath (pathA, pathB) {
   }
 
   return sharedPath
-}
-
-function strToValidPrometheusLabel (str) {
-  return str
-    .split('')
-    .map(c => VALID_PROMETHEUS_LABEL_CHARACTERS.includes(c) ? c : '_')
-    .join('')
 }
 
 module.exports = Hypertrace
