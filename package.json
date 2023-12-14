@@ -1,15 +1,20 @@
 {
-  "name": "tracing",
+  "name": "hypertrace",
   "version": "1.0.0",
-  "description": "Add tracing and insights to classes in modules",
+  "description": "Add tracing and insights to classes. Supports Prometheus/Grafana.",
   "main": "index.js",
   "scripts": {
-    "test": "node test/test.js"
+    "test": "standard && node test/test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "axios": "^1.6.2",
     "brittle": "^3.3.2"
+  },
+  "dependencies": {
+    "prom-client": "^15.0.0",
+    "standard": "^17.1.0"
   }
 }

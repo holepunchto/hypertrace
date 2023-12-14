@@ -1,16 +1,16 @@
-const Tracing = require('../')
+const Hypertrace = require('../')
 
 module.exports = class SomeModule {
-  constructor() {
-    this.tracing = new Tracing(this)
+  constructor (customProperties) {
+    this.tracer = new Hypertrace(this, customProperties)
   }
 
-  foo(opts) {
-    this.tracing.trace(opts)
+  foo (opts) {
+    this.tracer.trace(opts)
   }
 
-  getTracingObjectId() {
-    this.tracing.trace()
-    return this.tracing.getObjectId()
+  getTracingObjectId () {
+    this.tracer.trace()
+    return this.tracer.getObjectId()
   }
 }
