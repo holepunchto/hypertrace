@@ -34,19 +34,19 @@ test('Object is set for trace function', t => {
   someModule.foo()
 })
 
-test('Args are passed to trace function', t => {
+test('Props are passed as caller.props', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ args }) => {
-    t.alike(args, someArgs)
+  Hypertrace.setTraceFunction(({ caller }) => {
+    t.alike(caller.props, someProps)
   })
 
   const someModule = new SomeModule()
-  const someArgs = {
+  const someProps = {
     someProperty: Buffer.from('some value')
   }
-  someModule.foo(someArgs)
+  someModule.foo(someProps)
 })
 
 test('Context needs to be given', t => {
@@ -133,17 +133,51 @@ test('Object is able to read its own objectId', t => {
   t.is(objectIdFromObject, objectIdFromTracing)
 })
 
-test('Custom properties are always added to events in trace function', t => {
+test('When parent initiated with props, read them in parentObject.props', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ customProperties }) => {
-    t.alike(customProperties, someProps)
+  Hypertrace.setTraceFunction(({ parentObject }) => {
+    t.alike(parentObject.props, someProps)
+  })
+
+  class Parent {
+    constructor () {
+      this.tracer = new Hypertrace(this, { props: someProps })
+    }
+
+    createChild () {
+      return new Child(this.tracer)
+    }
+  }
+
+  class Child {
+    constructor (parentTracer) {
+      this.tracer = new Hypertrace(this, { parent: parentTracer })
+    }
+
+    foo () {
+      this.tracer.trace()
+    }
+  }
+
+  const someProps = { some: 'value' }
+  const parent = new Parent()
+  const child = parent.createChild()
+  child.foo()
+})
+
+test('Hypertrace nitiated with props are added as object.props', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  Hypertrace.setTraceFunction(({ object }) => {
+    t.alike(object.props, someProps)
   })
 
   class SomeClass {
     constructor () {
-      this.tracer = new Hypertrace(this, { customProperties: someProps })
+      this.tracer = new Hypertrace(this, { props: someProps })
     }
 
     fun () {
@@ -159,12 +193,12 @@ test('Custom properties are always added to events in trace function', t => {
   obj.fun()
 })
 
-test('Not setting custom properties is also supported', t => {
+test('Not settings props leaves it underfned', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ customProperties }) => {
-    t.absent(customProperties)
+  Hypertrace.setTraceFunction(({ object }) => {
+    t.absent(object.props)
   })
 
   const someModule = new SomeModule()
@@ -172,7 +206,7 @@ test('Not setting custom properties is also supported', t => {
   someModule.foo()
 })
 
-test('Instantiating hypertrace without a parent hypertrace, sets parentObject', t => {
+test('Instantiating hypertrace without a parent hypertrace, sets parentObject to undefined', t => {
   t.teardown(teardown)
   t.plan(1)
 

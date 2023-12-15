@@ -7,12 +7,13 @@ class Hypertrace {
   constructor (ctx, opts = { }) {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
-    const { parent, customProperties } = opts
+    const { parent, props } = opts
     this.className = ctx.constructor.name
-    this.customProperties = customProperties
+    this.props = props
     this.parent = parent && {
       className: parent.getClassName(),
-      id: parent.getObjectId()
+      id: parent.getObjectId(),
+      props: parent.getProps()
     }
 
     const currentObjectId = objectIds.get(ctx.constructor) || 0
@@ -36,7 +37,11 @@ class Hypertrace {
     return this.className
   }
 
-  trace (args) {
+  getProps () {
+    return this.props
+  }
+
+  trace (props) {
     const traceFunction = global[traceFunctionSymbol]
     const shouldTrace = traceFunction
     if (!shouldTrace) return
@@ -58,21 +63,21 @@ class Hypertrace {
 
     const object = {
       className: this.className,
-      id: this.objectId
+      id: this.objectId,
+      props: this.props
     }
     const caller = {
       functionName: realFunctionName,
       filename: realFilename,
       line: Number(line),
-      column: Number(column)
+      column: Number(column),
+      props
     }
 
     traceFunction({
-      args: { ...args },
-      caller,
       object,
       parentObject: this.parent,
-      customProperties: this.customProperties
+      caller
     })
   }
 }

@@ -23,8 +23,8 @@ import Hypertrace from 'hypertrace'
 export default class SomeModule {
   constructor () {
     this.tracer = new Hypertrace(this, {
-      customProperties: {
-        someCustom: 'property'
+      props: {
+        some: 'property'
       }
     })
   }
@@ -39,8 +39,8 @@ class Child {
   constructor (parentTracer) {
     this.tracer = new Hypertrace(this, {
       parent: parentTracer,
-      customProperties: {
-        someCustom: 'property'
+      props: {
+        another: 'value'
       }
     })
   }
@@ -78,23 +78,26 @@ child.foo(123)
   {
     object: {
       className: 'Child',
-      id: 1
+      id: 1,
+      props: {
+        another: 'value'
+      }
     },
     parentObject: {
       className: 'SomeModule',
-      id: 1
+      id: 1,
+      props: {
+        some: 'property'
+      }
     },
     caller: {
       functionName: 'foo',
       filename: '/test/Some.js',
       line: 29,
-      column: 17
-    },
-    args: {
-      val: 123
-    },
-    customProperties: {
-      someCustom: 'property'
+      column: 17,
+      props: {
+        val: 123
+      }
     }
   }
 */
@@ -102,11 +105,11 @@ child.foo(123)
 
 ## Methods
 
-### new Hypertrace(context, { customProperties, parent })
+### new Hypertrace(context, { parent, props })
 
 Create a new Hypertrace instance inside a class. Often used in the `constructor`.
 
-- **customProperties**: (optional) Some properties that are passed along to the trace function
+- **props**: (optional) Some properties that are passed along to the trace function
 - **parent**: (optional) A parent hypertrace instance to allow deeper understanding of structure. This is pased to the trace function.
 
 ``` js
@@ -117,32 +120,30 @@ class SomeClass {
 }
 ```
 
-#### .trace([args])
+#### .trace(props)
 
 Args are optional. They are passed to trace function, but are not used with Prometheus, because there is a limitation with Prometehus that label names cannot be set dynamically.
 
-- **args**: (optional) A map of arguments that's passed to the trace function
+- **props**: (optional) A map of properties that's passed to the trace function
 
 ``` js
 class SomeClass {
   constructor() {
     this.tracer = new Hypertrace(this)
   }
-  fn (some, props) {
-    this.tracer.trace({ some, props })
+  fn (some, val) {
+    this.tracer.trace({ some, val })
   }
 }
 ```
 
-### static Hypertrace.setTraceFunction(({ object, parentObject, caller, args, customProperties }) => { ... })
+### static Hypertrace.setTraceFunction(({ object, parentObject, caller }) => { ... })
 
 A static method that sets a global trace function that is invoked everytime `.trace()` is being called.
 
-- **object**: Contains `className` and `id`
-- **parentObject**: If hypertrace was initiated with `parent` then it contains `className` and `id`
-- **caller**: Contains `functionName`, `filename`, `line`, `column`
-- **args**: Contains the args passed to `.trace(args)`
-- **customProperties**: If hypertrace was initiated with `customProperties` then it contains those properties
+- **object**: Contains `className`, `id`, and `props`
+- **parentObject**: If hypertrace was initiated with `parent` then it contains `className`, `id`, and `props`
+- **caller**: Contains `functionName`, `filename`, `line`, `column`, and `props
 
 ### static Hypertrace.clearTraceFunction()
 
