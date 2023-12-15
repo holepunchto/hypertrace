@@ -61,11 +61,11 @@ import Hypertrace from 'hypertrace'
 // Log everytime .trace() is being called
 Hypertrace.setTraceFunction(({ object, parentObject, caller, args, customProperties }) => {
   console.log({
-    'object': object,
-    'parentObject': parentObject,
-    'caller': caller,
-    'args': args,
-    'customProperties': customProperties
+    object,
+    parentObject,
+    caller,
+    args,
+    customProperties
   })
 })
 
