@@ -27,7 +27,7 @@ test('Object is set for trace function', t => {
 
   Hypertrace.setTraceFunction(({ object }) => {
     t.is(object.className, 'SomeModule')
-    t.is(typeof object.objectId, 'number')
+    t.is(typeof object.id, 'number')
   })
 
   const someModule = new SomeModule()
@@ -62,9 +62,9 @@ test('ObjectId remains the same in an objects lifetime', t => {
 
   Hypertrace.setTraceFunction(({ object }) => {
     if (!firstObjectId) {
-      firstObjectId = object.objectId
+      firstObjectId = object.id
     } else {
-      t.is(object.objectId, firstObjectId)
+      t.is(object.id, firstObjectId)
     }
   })
 
@@ -81,7 +81,7 @@ test('ObjectId for a class starts at 1', t => {
   t.plan(1)
 
   Hypertrace.setTraceFunction(({ object }) => {
-    t.is(object.objectId, 1)
+    t.is(object.id, 1)
   })
 
   class SomeClass {
@@ -104,9 +104,9 @@ test('ObjectId increases by one for same class', t => {
 
   Hypertrace.setTraceFunction(({ object }) => {
     if (!firstObjectId) {
-      firstObjectId = object.objectId
+      firstObjectId = object.id
     } else {
-      t.is(object.objectId, firstObjectId + 1)
+      t.is(object.id, firstObjectId + 1)
     }
   })
 
@@ -123,7 +123,7 @@ test('Object is able to read its own objectId', t => {
   t.plan(1)
 
   Hypertrace.setTraceFunction(({ object }) => {
-    objectIdFromTracing = object.objectId
+    objectIdFromTracing = object.id
   })
 
   const someModule = new SomeModule()
@@ -200,9 +200,9 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
 
   Hypertrace.setTraceFunction(({ object, parentObject, caller }) => {
     t.is(object.className, 'SomeChild')
-    t.is(object.objectId, 1)
+    t.is(object.id, 1)
     t.is(parentObject.className, 'SomeParent')
-    t.is(parentObject.objectId, 1)
+    t.is(parentObject.id, 1)
     t.is(caller.functionName, 'foo')
   })
 

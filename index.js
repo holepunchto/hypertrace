@@ -12,7 +12,7 @@ class Hypertrace {
     this.customProperties = customProperties
     this.parent = parent && {
       className: parent.getClassName(),
-      objectId: parent.getObjectId()
+      id: parent.getObjectId()
     }
 
     const currentObjectId = objectIds.get(ctx.constructor) || 0
@@ -58,7 +58,7 @@ class Hypertrace {
 
     const object = {
       className: this.className,
-      objectId: this.objectId
+      id: this.objectId
     }
     const caller = {
       functionName: realFunctionName,

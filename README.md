@@ -78,11 +78,11 @@ child.foo(123)
   {
     object: {
       className: 'Child',
-        objectId: 1
+      id: 1
     },
     parentObject: {
       className: 'SomeModule',
-      objectId: 1
+      id: 1
     },
     caller: {
       functionName: 'foo',
@@ -138,8 +138,8 @@ class SomeClass {
 
 A static method that sets a global trace function that is invoked everytime `.trace()` is being called.
 
-- **object**: Contains `className` and `objectId`
-- **parentObject**: If hypertrace was initiated with `parent` then it contains `className` and `objectId`
+- **object**: Contains `className` and `id`
+- **parentObject**: If hypertrace was initiated with `parent` then it contains `className` and `id`
 - **caller**: Contains `functionName`, `filename`, `line`, `column`
 - **args**: Contains the args passed to `.trace(args)`
 - **customProperties**: If hypertrace was initiated with `customProperties` then it contains those properties
