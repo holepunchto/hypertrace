@@ -4,11 +4,16 @@ const objectIds = new Map()
 const traceFunctionSymbol = Symbol.for('hypertrace.traceFunction')
 
 class Hypertrace {
-  constructor (ctx, customProperties) {
+  constructor (ctx, opts = { }) {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
+    const { parent, customProperties } = opts
     this.className = ctx.constructor.name
     this.customProperties = customProperties
+    this.parent = parent && {
+      className: parent.getClassName(),
+      objectId: parent.getObjectId()
+    }
 
     const currentObjectId = objectIds.get(ctx.constructor) || 0
     this.objectId = currentObjectId + 1
@@ -25,6 +30,10 @@ class Hypertrace {
 
   getObjectId () {
     return this.objectId
+  }
+
+  getClassName () {
+    return this.className
   }
 
   trace (args) {
@@ -47,9 +56,11 @@ class Hypertrace {
       ? functionName.substr(functionName.indexOf('.') + 1)
       : functionName
 
-    const caller = {
+    const object = {
       className: this.className,
-      objectId: this.objectId,
+      objectId: this.objectId
+    }
+    const caller = {
       functionName: realFunctionName,
       filename: realFilename,
       line: Number(line),
@@ -59,6 +70,8 @@ class Hypertrace {
     traceFunction({
       args: { ...args },
       caller,
+      object,
+      parentObject: this.parent,
       customProperties: this.customProperties
     })
   }

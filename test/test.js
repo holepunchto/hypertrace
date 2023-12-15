@@ -1,6 +1,6 @@
 const test = require('brittle')
 const Hypertrace = require('../')
-const SomeModule = require('./SomeModule.js')
+const SomeModule = require('./SomeModule')
 
 function teardown () {
   Hypertrace.clearTraceFunction()
@@ -8,15 +8,26 @@ function teardown () {
 
 test('Caller is set for trace function', t => {
   t.teardown(teardown)
-  t.plan(6)
+  t.plan(4)
 
   Hypertrace.setTraceFunction(({ caller }) => {
     t.is(caller.functionName, 'foo')
-    t.is(caller.className, 'SomeModule')
-    t.is(typeof caller.objectId, 'number')
     t.is(caller.filename, '/test/SomeModule.js')
     t.is(caller.line, 9)
     t.is(caller.column, 17)
+  })
+
+  const someModule = new SomeModule()
+  someModule.foo()
+})
+
+test('Object is set for trace function', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  Hypertrace.setTraceFunction(({ object }) => {
+    t.is(object.className, 'SomeModule')
+    t.is(typeof object.objectId, 'number')
   })
 
   const someModule = new SomeModule()
@@ -49,11 +60,11 @@ test('ObjectId remains the same in an objects lifetime', t => {
   t.teardown(teardown)
   t.plan(2)
 
-  Hypertrace.setTraceFunction(({ caller }) => {
+  Hypertrace.setTraceFunction(({ object }) => {
     if (!firstObjectId) {
-      firstObjectId = caller.objectId
+      firstObjectId = object.objectId
     } else {
-      t.is(caller.objectId, firstObjectId)
+      t.is(object.objectId, firstObjectId)
     }
   })
 
@@ -69,8 +80,8 @@ test('ObjectId for a class starts at 1', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ caller }) => {
-    t.is(caller.objectId, 1)
+  Hypertrace.setTraceFunction(({ object }) => {
+    t.is(object.objectId, 1)
   })
 
   class SomeClass {
@@ -91,11 +102,11 @@ test('ObjectId increases by one for same class', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ caller }) => {
+  Hypertrace.setTraceFunction(({ object }) => {
     if (!firstObjectId) {
-      firstObjectId = caller.objectId
+      firstObjectId = object.objectId
     } else {
-      t.is(caller.objectId, firstObjectId + 1)
+      t.is(object.objectId, firstObjectId + 1)
     }
   })
 
@@ -111,8 +122,8 @@ test('Object is able to read its own objectId', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ caller }) => {
-    objectIdFromTracing = caller.objectId
+  Hypertrace.setTraceFunction(({ object }) => {
+    objectIdFromTracing = object.objectId
   })
 
   const someModule = new SomeModule()
@@ -132,7 +143,7 @@ test('Custom properties are always added to events in trace function', t => {
 
   class SomeClass {
     constructor () {
-      this.tracer = new Hypertrace(this, someProps)
+      this.tracer = new Hypertrace(this, { customProperties: someProps })
     }
 
     fun () {
@@ -159,4 +170,67 @@ test('Not setting custom properties is also supported', t => {
   const someModule = new SomeModule()
 
   someModule.foo()
+})
+
+test('Instantiating hypertrace without a parent hypertrace, sets parentObject', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  Hypertrace.setTraceFunction(({ parentObject }) => {
+    t.absent(parentObject)
+  })
+
+  class SomeClass {
+    constructor () {
+      this.tracer = new Hypertrace(this)
+    }
+
+    foo () {
+      this.tracer.trace()
+    }
+  }
+  const obj = new SomeClass()
+
+  obj.foo()
+})
+
+test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t => {
+  t.teardown(teardown)
+  t.plan(5)
+
+  Hypertrace.setTraceFunction(({ object, parentObject, caller }) => {
+    t.is(object.className, 'SomeChild')
+    t.is(object.objectId, 1)
+    t.is(parentObject.className, 'SomeParent')
+    t.is(parentObject.objectId, 1)
+    t.is(caller.functionName, 'foo')
+  })
+
+  class SomeParent {
+    constructor () {
+      this.tracer = new Hypertrace(this)
+    }
+
+    createChild () {
+      const child = new SomeChild(this)
+      return child
+    }
+  }
+
+  class SomeChild {
+    constructor (parent) {
+      this.tracer = new Hypertrace(this, {
+        parent: parent.tracer
+      })
+    }
+
+    foo () {
+      this.tracer.trace()
+    }
+  }
+
+  const core = new SomeParent()
+  const child = core.createChild()
+
+  child.foo()
 })
