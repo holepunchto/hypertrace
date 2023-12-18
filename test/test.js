@@ -23,11 +23,13 @@ test('Caller is set for trace function', t => {
 
 test('Object is set for trace function', t => {
   t.teardown(teardown)
-  t.plan(2)
+  t.plan(4)
 
   setTraceFunction(({ object }) => {
     t.is(object.className, 'SomeModule')
     t.is(typeof object.id, 'number')
+    t.is(object.props, null)
+    t.is(typeof object.instanceCount, 'number')
   })
 
   const someModule = new SomeModule()
@@ -47,6 +49,54 @@ test('Props are passed as caller.props', t => {
     someProperty: Buffer.from('some value')
   }
   someModule.foo(someProps)
+})
+
+test('Creating one object of a type has instanceCount set to 1', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(({ object }) => {
+    t.is(object.instanceCount, 1)
+  })
+
+  class SomeClass {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+
+    foo () {
+      this.tracer.trace()
+    }
+  }
+
+  const obj = new SomeClass()
+  obj.foo()
+})
+
+test('Creating two object of a type has instanceCount set to 2', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  let instances = 0
+  setTraceFunction(({ object }) => {
+    instances++
+    t.is(object.instanceCount, instances)
+  })
+
+  class SomeClass {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+
+    foo () {
+      this.tracer.trace()
+    }
+  }
+
+  const obj1 = new SomeClass()
+  obj1.foo()
+  const obj2 = new SomeClass()
+  obj2.foo()
 })
 
 test('Context needs to be given', t => {
@@ -293,3 +343,41 @@ test('setTraceFunction after initiating class means that it is not called', t =>
     t.fail()
   })
 })
+
+// // Comment this test in, to test instanceCount which requires garbage collection
+// test('When gc objects, instanceCount is counted down', async t => {
+//   t.teardown(teardown)
+//   t.plan(2)
+
+//   let firstCall = true
+//   setTraceFunction(({ object }) => {
+//     if (firstCall) {
+//       firstCall = false
+//       t.is(object.instanceCount, 2)
+//     } else {
+//       t.is(object.instanceCount, 1)
+//     }
+//   })
+
+//   class SomeClass1 {
+//     constructor () {
+//       this.tracer = createTracer(this)
+//     }
+
+//     foo () {
+//       this.tracer.trace()
+//     }
+//   }
+
+//   const objects = {
+//     first: new SomeClass1(),
+//     second: new SomeClass1()
+//   }
+//   objects.first.foo()
+//   delete objects.first
+//   global.gc() // Garbage collect objects.first
+
+//   await new Promise(resolve => setTimeout(resolve, 500)) // Wait a bit...
+
+//   objects.second.foo()
+// })

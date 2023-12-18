@@ -1,24 +1,28 @@
 const objectIds = new Map()
+const objectInstanceCount = new Map()
 const traceFunctionSymbol = Symbol.for('hypertrace.traceFunction')
+const registry = new FinalizationRegistry(constructor => {
+  const currentInstanceCount = objectInstanceCount.get(constructor)
+  objectInstanceCount.set(constructor, currentInstanceCount - 1)
+})
 
 class Hypertrace {
   constructor (ctx, opts = { }) {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
     const { parent, props } = opts
+    this.ctx = ctx
     this.className = ctx.constructor.name
     this.props = props || null
-    this.parent = !parent
-      ? null
-      : {
-          className: parent.getClassName(),
-          id: parent.getObjectId(),
-          props: parent.getProps()
-        }
+    this.parent = parent || null
 
     const currentObjectId = objectIds.get(ctx.constructor) || 0
     this.objectId = currentObjectId + 1
     objectIds.set(ctx.constructor, this.objectId)
+
+    registry.register(this, ctx.constructor)
+    const currentInstanceCount = objectInstanceCount.get(ctx.constructor) || 0
+    objectInstanceCount.set(ctx.constructor, currentInstanceCount + 1)
   }
 
   getObjectId () {
@@ -31,6 +35,21 @@ class Hypertrace {
 
   getProps () {
     return this.props
+  }
+
+  getInstanceCount () {
+    return objectInstanceCount.get(this.ctx.constructor)
+  }
+
+  getParentObject () {
+    if (!this.parent) return null
+
+    return {
+      className: this.parent.getClassName(),
+      id: this.parent.getObjectId(),
+      props: this.parent.getProps(),
+      instanceCount: this.parent.getInstanceCount()
+    }
   }
 
   trace (props) {
@@ -50,7 +69,8 @@ class Hypertrace {
     const object = {
       className: this.className,
       id: this.objectId,
-      props: this.props
+      props: this.props,
+      instanceCount: this.getInstanceCount()
     }
     const caller = {
       functionName: realFunctionName,
@@ -62,7 +82,7 @@ class Hypertrace {
 
     traceFunction({
       object,
-      parentObject: this.parent,
+      parentObject: this.getParentObject(),
       caller
     })
   }
