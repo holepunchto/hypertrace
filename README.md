@@ -57,7 +57,7 @@ import SomeModule from 'some-module'
 import { setTraceFunction } from 'hypertrace'
 
 // Log everytime .trace() is being called.
-// Important to call `setTraceFunction` BEFORE that objects are instantiated.
+// Important to call `setTraceFunction` BEFORE objects are instantiated and calls `createTracer`
 setTraceFunction(({ object, parentObject, caller, args, customProperties }) => {
   console.log({
     object,
@@ -68,7 +68,7 @@ setTraceFunction(({ object, parentObject, caller, args, customProperties }) => {
   })
 })
 
-const mod = new SomeModule()
+const mod = new SomeModule() // Inherently calls `createTracer`
 const child = mod.createChild()
 child.foo(123)
 
