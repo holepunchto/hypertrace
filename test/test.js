@@ -1,18 +1,18 @@
 const test = require('brittle')
-const Hypertrace = require('../')
-const SomeModule = require('./SomeModule')
+const { setTraceFunction, clearTraceFunction, createTracer } = require('../')
+const SomeModule = require('./fixtures/SomeModule')
 
 function teardown () {
-  Hypertrace.clearTraceFunction()
+  clearTraceFunction()
 }
 
 test('Caller is set for trace function', t => {
   t.teardown(teardown)
   t.plan(4)
 
-  Hypertrace.setTraceFunction(({ caller }) => {
+  setTraceFunction(({ caller }) => {
     t.is(caller.functionName, 'foo')
-    t.is(caller.filename, '/test/SomeModule.js')
+    t.ok(caller.filename.endsWith('/test/fixtures/SomeModule.js'))
     t.is(caller.line, 9)
     t.is(caller.column, 17)
   })
@@ -25,7 +25,7 @@ test('Object is set for trace function', t => {
   t.teardown(teardown)
   t.plan(2)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     t.is(object.className, 'SomeModule')
     t.is(typeof object.id, 'number')
   })
@@ -38,7 +38,7 @@ test('Props are passed as caller.props', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ caller }) => {
+  setTraceFunction(({ caller }) => {
     t.alike(caller.props, someProps)
   })
 
@@ -53,14 +53,15 @@ test('Context needs to be given', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  t.exception(() => new Hypertrace(/* no context here */))
+  setTraceFunction(() => { }) // Need to set this, unless createTracer() hits NoTracingClass
+  t.exception(() => createTracer(/* no context here */))
 })
 
 test('ObjectId remains the same in an objects lifetime', t => {
   t.teardown(teardown)
   t.plan(2)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     if (!firstObjectId) {
       firstObjectId = object.id
     } else {
@@ -80,13 +81,13 @@ test('ObjectId for a class starts at 1', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     t.is(object.id, 1)
   })
 
   class SomeClass {
     constructor () {
-      this.tracer = new Hypertrace(this)
+      this.tracer = createTracer(this)
     }
 
     fun () {
@@ -102,7 +103,7 @@ test('ObjectId increases by one for same class', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     if (!firstObjectId) {
       firstObjectId = object.id
     } else {
@@ -122,7 +123,7 @@ test('Object is able to read its own objectId', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     objectIdFromTracing = object.id
   })
 
@@ -137,13 +138,13 @@ test('When parent initiated with props, read them in parentObject.props', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ parentObject }) => {
+  setTraceFunction(({ parentObject }) => {
     t.alike(parentObject.props, someProps)
   })
 
   class Parent {
     constructor () {
-      this.tracer = new Hypertrace(this, { props: someProps })
+      this.tracer = createTracer(this, { props: someProps })
     }
 
     createChild () {
@@ -153,7 +154,7 @@ test('When parent initiated with props, read them in parentObject.props', t => {
 
   class Child {
     constructor (parentTracer) {
-      this.tracer = new Hypertrace(this, { parent: parentTracer })
+      this.tracer = createTracer(this, { parent: parentTracer })
     }
 
     foo () {
@@ -171,13 +172,13 @@ test('Hypertrace nitiated with props are added as object.props', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     t.alike(object.props, someProps)
   })
 
   class SomeClass {
     constructor () {
-      this.tracer = new Hypertrace(this, { props: someProps })
+      this.tracer = createTracer(this, { props: someProps })
     }
 
     fun () {
@@ -197,7 +198,7 @@ test('Not settings props leaves it underfned', t => {
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ object }) => {
+  setTraceFunction(({ object }) => {
     t.absent(object.props)
   })
 
@@ -210,13 +211,13 @@ test('Instantiating hypertrace without a parent hypertrace, sets parentObject to
   t.teardown(teardown)
   t.plan(1)
 
-  Hypertrace.setTraceFunction(({ parentObject }) => {
+  setTraceFunction(({ parentObject }) => {
     t.absent(parentObject)
   })
 
   class SomeClass {
     constructor () {
-      this.tracer = new Hypertrace(this)
+      this.tracer = createTracer(this)
     }
 
     foo () {
@@ -232,7 +233,7 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
   t.teardown(teardown)
   t.plan(5)
 
-  Hypertrace.setTraceFunction(({ object, parentObject, caller }) => {
+  setTraceFunction(({ object, parentObject, caller }) => {
     t.is(object.className, 'SomeChild')
     t.is(object.id, 1)
     t.is(parentObject.className, 'SomeParent')
@@ -242,7 +243,7 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
 
   class SomeParent {
     constructor () {
-      this.tracer = new Hypertrace(this)
+      this.tracer = createTracer(this)
     }
 
     createChild () {
@@ -253,7 +254,7 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
 
   class SomeChild {
     constructor (parent) {
-      this.tracer = new Hypertrace(this, {
+      this.tracer = createTracer(this, {
         parent: parent.tracer
       })
     }
@@ -267,4 +268,28 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
   const child = core.createChild()
 
   child.foo()
+})
+
+test('setTraceFunction before initiating class means that it is called', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(() => {
+    t.pass()
+  })
+
+  const mod = new SomeModule()
+  mod.foo()
+})
+
+test('setTraceFunction after initiating class means that it is not called', t => {
+  t.teardown(teardown)
+  t.plan(0)
+
+  const mod = new SomeModule()
+  mod.foo()
+
+  setTraceFunction(() => {
+    t.fail()
+  })
 })

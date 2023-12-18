@@ -1,8 +1,6 @@
 # hypertrace
 
-Add tracing and insights to classes.
-
-Set a global trace function that is being invoked everytime `.trace()` is being called.
+Add tracing and insights to classes. One of the goals of the module is that there is close to zero overhead when tracing is not enabled. This is achieved by not enabling tracing on objects created before tracing was enabled.
 
 There is support for Prometheus/Grafana through [hypertrace-prometheus](https://github.com/holepunchto/hypertrace-prometheus) to get better visual insights into an application's behavior.
 
@@ -14,15 +12,15 @@ $ npm i hypertrace
 
 ## Usage / instrumentation
 
-First add Hypertrace to classes where insights are needed
+First create tracers in the classes where insights are needed
 
 `some-module.js`
 ``` js
-import Hypertrace from 'hypertrace'
+import { createTracer } from 'hypertrace'
 
 export default class SomeModule {
   constructor () {
-    this.tracer = new Hypertrace(this, {
+    this.tracer = createTracer(this, {
       props: {
         some: 'property'
       }
@@ -37,7 +35,7 @@ export default class SomeModule {
 
 class Child {
   constructor (parentTracer) {
-    this.tracer = new Hypertrace(this, {
+    this.tracer = createTracer(this, {
       parent: parentTracer,
       props: {
         another: 'value'
@@ -51,15 +49,16 @@ class Child {
 }
 ```
 
-Then add `.setTraceFunction()` when traces are needed.
+Then add `.setTraceFunction()` when traces are needed. It's important that this happens **before** classes that use Hypertrace are instantiated. Otherwise the tracer will not be enabled for those objects.
 
 `app.js`
 ``` js
 import SomeModule from 'some-module'
-import Hypertrace from 'hypertrace'
+import { setTraceFunction } from 'hypertrace'
 
-// Log everytime .trace() is being called
-Hypertrace.setTraceFunction(({ object, parentObject, caller, args, customProperties }) => {
+// Log everytime .trace() is being called.
+// Important to call `setTraceFunction` BEFORE that objects are instantiated.
+setTraceFunction(({ object, parentObject, caller, args, customProperties }) => {
   console.log({
     object,
     parentObject,
@@ -105,9 +104,11 @@ child.foo(123)
 
 ## Methods
 
-### new Hypertrace(context, { parent, props })
+### createTracer(context, { parent, props })
 
 Create a new Hypertrace instance inside a class. Often used in the `constructor`.
+
+_If_ this is called before `setTraceFunction` then it will return a cummy class. This means that there will be close to zero overhead when tracing is not needed.
 
 - **props**: (optional) Some properties that are passed along to the trace function
 - **parent**: (optional) A parent hypertrace instance to allow deeper understanding of structure. This is pased to the trace function.
@@ -115,7 +116,7 @@ Create a new Hypertrace instance inside a class. Often used in the `constructor`
 ``` js
 class SomeClass {
   constructor() {
-    this.tracer = new Hypertrace(this)
+    this.tracer = createTracer(this)
   }
 }
 ```
@@ -137,14 +138,16 @@ class SomeClass {
 }
 ```
 
-### static Hypertrace.setTraceFunction(({ object, parentObject, caller }) => { ... })
+### setTraceFunction(({ object, parentObject, caller }) => { ... })
 
-A static method that sets a global trace function that is invoked everytime `.trace()` is being called.
+Set a global trace function that is invoked everytime `.trace()` is being called.
+
+**Important**: Tracing is only enabled for objects created after `setTraceFunction` is called.
 
 - **object**: Contains `className`, `id`, and `props`
 - **parentObject**: If hypertrace was initiated with `parent` then it contains `className`, `id`, and `props`
 - **caller**: Contains `functionName`, `filename`, `line`, `column`, and `props
 
-### static Hypertrace.clearTraceFunction()
+### clearTraceFunction()
 
-A static method that clears the global trace function.
+Remove the global trace function. Calls to `createTracer` after this will return a dummy object to reduce runtime overhead.

@@ -1,8 +1,8 @@
-const Hypertrace = require('../')
+const { createTracer } = require('../../')
 
 module.exports = class SomeModule {
   constructor (customProperties) {
-    this.tracer = new Hypertrace(this, customProperties)
+    this.tracer = createTracer(this, customProperties)
   }
 
   foo (opts) {
