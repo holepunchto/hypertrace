@@ -78,7 +78,6 @@ child.foo(123)
     object: {
       className: 'Child',
       id: 1,
-      instanceCount: 1, // How many Child instances are alive (have not been garbage collected) at this moment
       props: {
         another: 'value'
       }
@@ -86,7 +85,6 @@ child.foo(123)
     parentObject: {
       className: 'SomeModule',
       id: 1,
-      instanceCount: 1, // How many SomeModule instances are alive (have not been garbage collected) at this moment
       props: {
         some: 'property'
       }
@@ -146,8 +144,8 @@ Set a global trace function that is invoked everytime `.trace()` is being called
 
 **Important**: Tracing is only enabled for objects created after `setTraceFunction` is called.
 
-- **object**: Contains `className`, `id`, `instanceCount`, and `props`
-- **parentObject**: If hypertrace was initiated with `parent` then it contains `className`, `id`, `instanceCount` and `props`
+- **object**: Contains `className`, `id`, and `props`
+- **parentObject**: If hypertrace was initiated with `parent` then it contains `className`, `id`, and `props`
 - **caller**: Contains `functionName`, `filename`, `line`, `column`, and `props
 
 ### clearTraceFunction()
