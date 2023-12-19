@@ -13,26 +13,14 @@ class Hypertrace {
     this.parentObject = !parent
       ? null
       : {
-          className: parent.getClassName(),
-          id: parent.getObjectId(),
-          props: parent.getProps()
+          className: parent.className,
+          id: parent.objectId,
+          props: parent.props
         }
 
     const currentObjectId = objectIds.get(ctx.constructor) || 0
     this.objectId = currentObjectId + 1
     objectIds.set(ctx.constructor, this.objectId)
-  }
-
-  getObjectId () {
-    return this.objectId
-  }
-
-  getClassName () {
-    return this.className
-  }
-
-  getProps () {
-    return this.props
   }
 
   trace (props) {
@@ -73,12 +61,13 @@ class Hypertrace {
 class NoTracingClass {
   constructor () {
     this.enabled = false
+    this.ctx = null
+    this.className = null
+    this.props = null
+    this.objectId = null
   }
 
   trace () { /* noop */ }
-  getObjectId () { /* noop */ }
-  getClassName () { /* noop */ }
-  getProps () { /* noop */ }
 }
 
 const noTracing = new NoTracingClass()

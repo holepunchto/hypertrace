@@ -11,14 +11,14 @@ test('Caller is set for trace function', t => {
   t.plan(4)
 
   setTraceFunction(({ caller }) => {
-    t.is(caller.functionName, 'foo')
+    t.is(caller.functionName, 'callTrace')
     t.ok(caller.filename.endsWith('/test/fixtures/SomeModule.js'))
     t.is(caller.line, 9)
     t.is(caller.column, 17)
   })
 
   const someModule = new SomeModule()
-  someModule.foo()
+  someModule.callTrace()
 })
 
 test('Props are passed as caller.props', t => {
@@ -33,7 +33,7 @@ test('Props are passed as caller.props', t => {
   const someProps = {
     someProperty: Buffer.from('some value')
   }
-  someModule.foo(someProps)
+  someModule.callTrace(someProps)
 })
 
 test('Context needs to be given', t => {
@@ -59,9 +59,9 @@ test('ObjectId remains the same in an objects lifetime', t => {
   const someModule = new SomeModule()
   let firstObjectId
 
-  someModule.foo()
-  someModule.foo()
-  someModule.foo()
+  someModule.callTrace()
+  someModule.callTrace()
+  someModule.callTrace()
 })
 
 test('ObjectId for a class starts at 1', t => {
@@ -102,8 +102,8 @@ test('ObjectId increases by one for same class', t => {
   const someModule1 = new SomeModule()
   const someModule2 = new SomeModule()
 
-  someModule1.foo()
-  someModule2.foo()
+  someModule1.callTrace()
+  someModule2.callTrace()
 })
 
 test('Object is able to read its own objectId', t => {
@@ -114,9 +114,10 @@ test('Object is able to read its own objectId', t => {
     objectIdFromTracing = object.id
   })
 
-  const someModule = new SomeModule()
   let objectIdFromTracing
-  const objectIdFromObject = someModule.getTracingObjectId() // The function returns this.tracing.getObjectId()
+  const someModule = new SomeModule()
+  someModule.callTrace()
+  const objectIdFromObject = someModule.getTracerObjectId() // The function returns this.tracing.getObjectId()
 
   t.is(objectIdFromObject, objectIdFromTracing)
 })
@@ -144,7 +145,7 @@ test('When parent initiated with props, read them in parentObject.props', t => {
       this.tracer = createTracer(this, { parent: parentTracer })
     }
 
-    foo () {
+    callTrace () {
       this.tracer.trace()
     }
   }
@@ -152,7 +153,7 @@ test('When parent initiated with props, read them in parentObject.props', t => {
   const someProps = { some: 'value' }
   const parent = new Parent()
   const child = parent.createChild()
-  child.foo()
+  child.callTrace()
 })
 
 test('Hypertrace nitiated with props are added as object.props', t => {
@@ -191,7 +192,7 @@ test('Not settings props leaves it underfned', t => {
 
   const someModule = new SomeModule()
 
-  someModule.foo()
+  someModule.callTrace()
 })
 
 test('Instantiating hypertrace without a parent hypertrace, sets parentObject to undefined', t => {
@@ -207,13 +208,13 @@ test('Instantiating hypertrace without a parent hypertrace, sets parentObject to
       this.tracer = createTracer(this)
     }
 
-    foo () {
+    callTrace () {
       this.tracer.trace()
     }
   }
   const obj = new SomeClass()
 
-  obj.foo()
+  obj.callTrace()
 })
 
 test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t => {
@@ -225,7 +226,7 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
     t.is(object.id, 1)
     t.is(parentObject.className, 'SomeParent')
     t.is(parentObject.id, 1)
-    t.is(caller.functionName, 'foo')
+    t.is(caller.functionName, 'callTrace')
   })
 
   class SomeParent {
@@ -246,7 +247,7 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
       })
     }
 
-    foo () {
+    callTrace () {
       this.tracer.trace()
     }
   }
@@ -254,7 +255,7 @@ test('Instantiating hypertrace with a parent hypertrace, sets parentObject', t =
   const core = new SomeParent()
   const child = core.createChild()
 
-  child.foo()
+  child.callTrace()
 })
 
 test('setTraceFunction before initiating class means that it is called', t => {
@@ -266,7 +267,7 @@ test('setTraceFunction before initiating class means that it is called', t => {
   })
 
   const mod = new SomeModule()
-  mod.foo()
+  mod.callTrace()
 })
 
 test('setTraceFunction after initiating class means that it is not called', t => {
@@ -274,7 +275,7 @@ test('setTraceFunction after initiating class means that it is not called', t =>
   t.plan(0)
 
   const mod = new SomeModule()
-  mod.foo()
+  mod.callTrace()
 
   setTraceFunction(() => {
     t.fail()
@@ -316,4 +317,50 @@ test('If setTraceFunction is set before intiating, then Hypertrace.enabled = tru
   setTraceFunction(() => { })
   const obj = new SomeClass()
   t.is(obj.getEnabledStatus(), true)
+})
+
+test('.ctx is set on tracer', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(() => { }) // Has to be set, otherwise ctx is null
+  const someModule = new SomeModule()
+  t.is(someModule.getTracerCtx(), someModule)
+})
+
+test('.className is set on tracer', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(() => { }) // Has to be set, otherwise ctx is null
+  const someModule = new SomeModule()
+  t.is(someModule.getTracerClassName(), 'SomeModule')
+})
+
+test('.objectId is set on tracer', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(() => { }) // Has to be set, otherwise ctx is null
+  class SomeClass {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+
+    getTracerObjectId () {
+      return this.tracer.objectId
+    }
+  }
+  const obj = new SomeClass()
+  t.is(obj.getTracerObjectId(), 1)
+})
+
+test('.props is set on tracer', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(() => { }) // Has to be set, otherwise ctx is null
+  const someProps = { some: 'props' }
+  const someModule = new SomeModule(someProps)
+  t.alike(someModule.getTracerProps(), someProps)
 })

@@ -1,16 +1,31 @@
 const { createTracer } = require('../../')
 
 module.exports = class SomeModule {
-  constructor (customProperties) {
-    this.tracer = createTracer(this, customProperties)
+  constructor (props) {
+    this.tracer = createTracer(this, { props })
   }
 
-  foo (opts) {
+  callTrace (opts) {
     this.tracer.trace(opts)
   }
 
-  getTracingObjectId () {
-    this.tracer.trace()
-    return this.tracer.getObjectId()
+  getTracerObjectId () {
+    return this.tracer.objectId
+  }
+
+  getTracerCtx () {
+    return this.tracer.ctx
+  }
+
+  getTracerClassName () {
+    return this.tracer.className
+  }
+
+  getTracerEnabled () {
+    return this.tracer.enabled
+  }
+
+  getTracerProps () {
+    return this.tracer.props
   }
 }
