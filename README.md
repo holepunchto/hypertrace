@@ -165,8 +165,8 @@ Set a global trace function that is invoked everytime `.trace()` is being called
 
 **Important**: Tracing is only enabled for objects created after `setTraceFunction` is called.
 
-- **object**: Contains `className`, `id`, and `props`
-- **parentObject**: If hypertrace was initiated with `parent` then it contains `className`, `id`, and `props`
+- **object**: Contains `ctx`, `className`, `id`, and `props`
+- **parentObject**: If hypertrace was initiated with `parent` then it contains `ctx`, `className`, `id`, and `props`
 - **caller**: Contains `functionName`, `filename`, `line`, `column`, and `props
 
 ### clearTraceFunction()

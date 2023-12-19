@@ -15,7 +15,8 @@ class Hypertrace {
       : {
           className: parent.className,
           id: parent.objectId,
-          props: parent.props
+          props: parent.props,
+          ctx: parent.ctx
         }
 
     const currentObjectId = objectIds.get(ctx.constructor) || 0
@@ -40,7 +41,8 @@ class Hypertrace {
     const object = {
       className: this.className,
       id: this.objectId,
-      props: this.props
+      props: this.props,
+      ctx: this.ctx
     }
     const caller = {
       functionName: realFunctionName,

@@ -364,3 +364,48 @@ test('.props is set on tracer', t => {
   const someModule = new SomeModule(someProps)
   t.alike(someModule.getTracerProps(), someProps)
 })
+
+test('ctx is passed in object', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(({ object }) => {
+    t.is(object.ctx, someModule)
+  })
+
+  const someModule = new SomeModule()
+  someModule.callTrace()
+})
+
+test('ctx is passed in parentObject', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(({ parentObject }) => {
+    t.is(parentObject.ctx, parent)
+  })
+
+  class Parent {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+
+    createChild () {
+      return new Child(this.tracer)
+    }
+  }
+
+  class Child {
+    constructor (parentTracer) {
+      this.tracer = createTracer(this, { parent: parentTracer })
+    }
+
+    callTrace () {
+      this.tracer.trace()
+    }
+  }
+
+  const parent = new Parent()
+  const child = parent.createChild()
+  child.callTrace()
+})
