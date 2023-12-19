@@ -138,6 +138,10 @@ class SomeClass {
 }
 ```
 
+#### .enabled
+
+A flag that says if the tracer is enabled for this Hypertrace. This is `true` if a trace function was set before initiating, and `false` if not.
+
 ### setTraceFunction(({ object, parentObject, caller }) => { ... })
 
 Set a global trace function that is invoked everytime `.trace()` is being called.

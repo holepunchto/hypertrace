@@ -9,6 +9,7 @@ class Hypertrace {
     this.ctx = ctx
     this.className = ctx.constructor.name
     this.props = props || null
+    this.enabled = true
     this.parentObject = !parent
       ? null
       : {
@@ -70,6 +71,10 @@ class Hypertrace {
 }
 
 class NoTracingClass {
+  constructor () {
+    this.enabled = false
+  }
+
   trace () { /* noop */ }
   getObjectId () { /* noop */ }
   getClassName () { /* noop */ }

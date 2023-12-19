@@ -280,3 +280,40 @@ test('setTraceFunction after initiating class means that it is not called', t =>
     t.fail()
   })
 })
+
+test('If setTraceFunction is not set before initiating, then Hypertrace.enabled = false', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  class SomeClass {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+
+    getEnabledStatus () {
+      return this.tracer.enabled
+    }
+  }
+
+  const obj = new SomeClass()
+  t.is(obj.getEnabledStatus(), false)
+})
+
+test('If setTraceFunction is set before intiating, then Hypertrace.enabled = true', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  class SomeClass {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+
+    getEnabledStatus () {
+      return this.tracer.enabled
+    }
+  }
+
+  setTraceFunction(() => { })
+  const obj = new SomeClass()
+  t.is(obj.getEnabledStatus(), true)
+})
