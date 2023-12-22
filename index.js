@@ -1,4 +1,4 @@
-const objectIds = new Map()
+const objectState = new Map()
 const traceFunctionSymbol = Symbol.for('hypertrace.traceFunction')
 
 class Hypertrace {
@@ -15,22 +15,38 @@ class Hypertrace {
       : {
           className: parent.className,
           id: parent.objectId,
-          props: parent.props,
+          props: { ...parent.props },
           ctx: parent.ctx
         }
 
-    const currentObjectId = objectIds.get(ctx.constructor) || 0
-    this.objectId = currentObjectId + 1
-    objectIds.set(ctx.constructor, this.objectId)
+    const currentObjectState = objectState.get(ctx.constructor) || { id: 0, stacktraceCache: new Map() }
+    currentObjectState.id += 1
+    this.objectId = currentObjectState.id
+    objectState.set(ctx.constructor, currentObjectState)
   }
 
-  trace (props) {
+  trace (...args) {
     const traceFunction = global[traceFunctionSymbol]
     const shouldTrace = traceFunction
     if (!shouldTrace) return
 
-    const errorToGetContext = new Error()
-    const callLine = errorToGetContext.stack.split('\n')[2]
+    let [cacheId, props] = args
+    const hasTraceIdInArgs = typeof cacheId === 'string'
+    if (!hasTraceIdInArgs) {
+      props = cacheId
+      cacheId = null
+    }
+
+    const currentObjectState = objectState.get(this.ctx.constructor)
+    let stack = cacheId && currentObjectState.stacktraceCache.get(cacheId)
+    const hasCachedStacktrace = !!stack
+    if (!hasCachedStacktrace) {
+      const errorToGetContext = new Error()
+      stack = errorToGetContext.stack
+      currentObjectState.stacktraceCache.set(cacheId, stack)
+    }
+
+    const callLine = stack.split('\n')[2]
     const re = /.*at (.+) \((?:file:\/:\/)?(.+):(\d+):(\d+)\)/
     const [, functionName, filename, line, column] = callLine.match(re)
 
@@ -41,7 +57,7 @@ class Hypertrace {
     const object = {
       className: this.className,
       id: this.objectId,
-      props: this.props,
+      props: this.props && { ...this.props },
       ctx: this.ctx
     }
     const caller = {
@@ -49,10 +65,11 @@ class Hypertrace {
       filename,
       line: Number(line),
       column: Number(column),
-      props
+      props: props && { ...props }
     }
 
     traceFunction({
+      cacheId: cacheId || null,
       object,
       parentObject: this.parentObject,
       caller

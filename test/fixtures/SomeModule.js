@@ -5,8 +5,8 @@ module.exports = class SomeModule {
     this.tracer = createTracer(this, { props })
   }
 
-  callTrace (opts) {
-    this.tracer.trace(opts)
+  callTrace (...args) {
+    this.tracer.trace(...args)
   }
 
   getTracerObjectId () {

@@ -409,3 +409,136 @@ test('ctx is passed in parentObject', t => {
   const child = parent.createChild()
   child.callTrace()
 })
+
+test('Using cacheId speeds up trace calls', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTraceFunction(() => { })
+
+  const callsCount = 50000
+  const mod = new SomeModule()
+  const start1 = Date.now()
+  for (let i = 0; i < callsCount; i++) {
+    mod.callTrace()
+  }
+  const timeWithoutCache = Date.now() - start1
+
+  const start2 = Date.now()
+  for (let i = 0; i < callsCount; i++) {
+    mod.callTrace('someCacheId')
+  }
+  const timeWithCache = Date.now() - start2
+
+  t.ok(timeWithCache < timeWithoutCache, `Doing ${callsCount} calls. Without cache: ${timeWithoutCache}ms. With cache: ${timeWithCache}ms.`)
+})
+
+test('Using cacheId together with opts', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  setTraceFunction(({ caller }) => {
+    t.alike(caller.props, someProps)
+  })
+
+  const someProps = {
+    some: 'value'
+  }
+
+  const mod = new SomeModule()
+  mod.callTrace('someCacheId', someProps)
+  mod.callTrace('someCacheId', someProps)
+})
+
+test('Using cacheId together with opts, will not cache the passed props', t => {
+  t.teardown(teardown)
+  t.plan(3)
+
+  let calls = 0
+  setTraceFunction(({ caller }) => {
+    calls += 1
+    if (calls === 1) t.alike(caller.props, someProps1)
+    if (calls === 2) t.alike(caller.props, someProps2)
+    if (calls === 3) t.absent(caller.props)
+  })
+
+  const someProps1 = {
+    some: 'val1'
+  }
+  const someProps2 = {
+    another: 'val2'
+  }
+
+  const mod = new SomeModule()
+  mod.callTrace('someCacheId', someProps1)
+  mod.callTrace('someCacheId', someProps2)
+  mod.callTrace('someCacheId')
+})
+
+test('Using same cacheId in different tracers does not pass same args', t => {
+  t.teardown(teardown)
+  t.plan(4)
+
+  let calls = 0
+  setTraceFunction(({ object }) => {
+    calls += 1
+    if (calls === 1) t.alike(object.props, someProps1)
+    if (calls === 2) t.alike(object.props, someProps2)
+    if (calls === 3) t.alike(object.props, someProps1)
+    if (calls === 4) t.alike(object.props, someProps2)
+  })
+
+  const someProps1 = {
+    some: 'val1'
+  }
+  const someProps2 = {
+    another: 'val2'
+  }
+  const mod1 = new SomeModule(someProps1)
+  mod1.callTrace('sameCacheId')
+  const mod2 = new SomeModule(someProps2)
+  mod2.callTrace('sameCachedId')
+
+  mod1.callTrace('sameCachedId')
+
+  mod2.callTrace('sameCachedId')
+})
+
+test('Passed opts map to trace function is not the same as the one passed to .trace()', t => {
+  t.teardown(teardown)
+  t.plan(4)
+
+  setTraceFunction(({ object, caller }) => {
+    t.is(object.props.some, 'val')
+    t.is(caller.props.another, 'val')
+    object.props.some = 'woah woah this is not val'
+    caller.props.another = 'woah woah this is not val'
+  })
+
+  const someObjectProps = {
+    some: 'val'
+  }
+  const someTraceProps = {
+    another: 'val'
+  }
+  const mod = new SomeModule(someObjectProps)
+  mod.callTrace(someTraceProps)
+  t.is(someObjectProps.some, 'val')
+  t.is(someTraceProps.another, 'val')
+})
+
+test('cacheId is passed to trace function', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  let calls = 0
+  setTraceFunction(({ cacheId }) => {
+    calls += 1
+    if (calls === 1) t.is(cacheId, 'someCacheId')
+    if (calls === 2) t.is(cacheId, null)
+  })
+
+  const mod = new SomeModule()
+  mod.callTrace('someCacheId')
+  mod.callTrace()
+})
