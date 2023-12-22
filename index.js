@@ -6,7 +6,6 @@ class Hypertrace {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
     const { parent, props } = opts
-    this._cachedStacktrace = new Map()
     this.ctx = ctx
     this.className = ctx.constructor.name
     this.props = props || null
