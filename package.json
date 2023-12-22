@@ -1,6 +1,6 @@
 {
   "name": "hypertrace",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Add tracing and insights to classes. Supports Prometheus/Grafana.",
   "main": "index.js",
   "scripts": {
