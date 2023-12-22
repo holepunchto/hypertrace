@@ -6,6 +6,7 @@ class Hypertrace {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
     const { parent, props } = opts
+    this._cachedTracesArgs = new Map()
     this.ctx = ctx
     this.className = ctx.constructor.name
     this.props = props || null
@@ -24,10 +25,25 @@ class Hypertrace {
     objectIds.set(ctx.constructor, this.objectId)
   }
 
-  trace (props) {
+  trace (...args) {
     const traceFunction = global[traceFunctionSymbol]
     const shouldTrace = traceFunction
     if (!shouldTrace) return
+
+    let [cacheId, props] = args
+    const hasTraceIdInArgs = typeof cacheId === 'string'
+    if (!hasTraceIdInArgs) {
+      props = cacheId
+      cacheId = null
+    }
+
+    const cachedTraceArgs = cacheId && this._cachedTracesArgs.get(cacheId)
+    const shouldReturnCachedTraceArgs = !!cachedTraceArgs
+    if (shouldReturnCachedTraceArgs) {
+      cachedTraceArgs.caller.props = props
+      traceFunction(cachedTraceArgs)
+      return
+    }
 
     const errorToGetContext = new Error()
     const callLine = errorToGetContext.stack.split('\n')[2]
@@ -52,11 +68,17 @@ class Hypertrace {
       props
     }
 
-    traceFunction({
+    const traceArgs = {
       object,
       parentObject: this.parentObject,
       caller
-    })
+    }
+
+    if (cacheId) {
+      this._cachedTracesArgs.set(cacheId, traceArgs)
+    }
+
+    traceFunction(traceArgs)
   }
 }
 

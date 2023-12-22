@@ -121,10 +121,15 @@ class SomeClass {
 }
 ```
 
-#### .trace(props)
+#### .trace([cacheId], [props])
 
-Args are optional. They are passed to trace function, but are not used with Prometheus, because there is a limitation with Prometehus that label names cannot be set dynamically.
+If the trace function has been set with `setTraceFunction`, then it is called.
 
+Note: If the trace function has not been set, there is no overhead in calling this.
+
+Note: If `.trace()` is called _very_ often then there can be some measurable overhead if the trace function has been set. To avoid this overhead pass `cacheId`, which then always calls the trace function with the same cached parameters. `props` will always be passed.
+
+- **cacheId**: (optional) A cacheId (string) that can be used to significantly speed up tracing, by caching returned resuls.
 - **props**: (optional) A map of properties that's passed to the trace function
 
 ``` js
