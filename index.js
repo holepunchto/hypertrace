@@ -6,7 +6,7 @@ class Hypertrace {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
     const { parent, props } = opts
-    this._cachedTracesArgs = new Map()
+    this._cachedStacktrace = new Map()
     this.ctx = ctx
     this.className = ctx.constructor.name
     this.props = props || null
@@ -37,18 +37,15 @@ class Hypertrace {
       cacheId = null
     }
 
-    const cachedTraceArgs = cacheId && this._cachedTracesArgs.get(cacheId)
-    const shouldReturnCachedTraceArgs = !!cachedTraceArgs
-    if (shouldReturnCachedTraceArgs) {
-      cachedTraceArgs.caller.props = props
-      traceFunction(cachedTraceArgs)
-      return
+    let stack = cacheId && this._cachedStacktrace.get(cacheId)
+    const hasCachedStacktrace = !!stack
+    if (!hasCachedStacktrace) {
+      const errorToGetContext = new Error()
+      stack = errorToGetContext.stack
+      this._cachedStacktrace.set(cacheId, stack)
     }
 
-    // CHECK IF CACHED ERROR STACK, THEN FETCH THAT
-    // DO NOT CACHE object, parentObject, or caller
-    const errorToGetContext = new Error()
-    const callLine = errorToGetContext.stack.split('\n')[2]
+    const callLine = stack.split('\n')[2]
     const re = /.*at (.+) \((?:file:\/:\/)?(.+):(\d+):(\d+)\)/
     const [, functionName, filename, line, column] = callLine.match(re)
 
@@ -69,17 +66,12 @@ class Hypertrace {
       column: Number(column),
       props: props && { ...props }
     }
-    const traceArgs = {
+
+    traceFunction({
       object,
       parentObject: this.parentObject,
       caller
-    }
-
-    if (cacheId) {
-      this._cachedTracesArgs.set(cacheId, traceArgs)
-    }
-
-    traceFunction(traceArgs)
+    })
   }
 }
 
