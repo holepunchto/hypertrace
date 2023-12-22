@@ -141,6 +141,12 @@ class SomeClass {
 }
 ```
 
+#### .setParent([parentTracer])
+
+Sets the parent tracer of this one. This means that subsequent calls to `.trace()` will have the new `parentObject`.
+
+If `parentTracer` is null, then the current parent is removed and subsequent calls to `.trace()` will not have a `parentObject`.
+
 #### .enabled
 
 A flag that says if the tracer is enabled for this Hypertrace. This is `true` if a trace function was set before initiating, and `false` if not.

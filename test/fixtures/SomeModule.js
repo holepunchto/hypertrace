@@ -9,6 +9,10 @@ module.exports = class SomeModule {
     this.tracer.trace(...args)
   }
 
+  callSetParent (parentTracer) {
+    this.tracer.setParent(parentTracer)
+  }
+
   getTracerObjectId () {
     return this.tracer.objectId
   }

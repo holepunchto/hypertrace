@@ -25,6 +25,17 @@ class Hypertrace {
     objectState.set(ctx.constructor, currentObjectState)
   }
 
+  setParent (parentTracer) {
+    this.parentObject = !parentTracer
+      ? null
+      : {
+          className: parentTracer.className,
+          id: parentTracer.objectId,
+          props: { ...parentTracer.props },
+          ctx: parentTracer.ctx
+        }
+  }
+
   trace (...args) {
     const traceFunction = global[traceFunctionSymbol]
     const shouldTrace = traceFunction
@@ -87,6 +98,8 @@ class NoTracingClass {
   }
 
   trace () { /* noop */ }
+
+  setParent () { /* noop */ }
 }
 
 const noTracing = new NoTracingClass()

@@ -542,3 +542,108 @@ test('cacheId is passed to trace function', t => {
   mod.callTrace('someCacheId')
   mod.callTrace()
 })
+
+test('setParent changes the parent of the object', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  let calls = 0
+  setTraceFunction(({ object, parentObject }) => {
+    calls += 1
+    if (calls === 1) t.alike(parentObject.props, originalProps)
+    if (calls === 2) t.alike(parentObject.props, secondaryProps)
+  })
+
+  class OriginalParent {
+    constructor () {
+      this.tracer = createTracer(this, { props: originalProps })
+    }
+
+    createChild () {
+      return new Child(this.tracer)
+    }
+  }
+
+  class SecondaryParent {
+    constructor () {
+      this.tracer = createTracer(this, { props: secondaryProps })
+    }
+  }
+
+  class Child {
+    constructor (parentTracer) {
+      this.tracer = createTracer(this, { parent: parentTracer })
+    }
+
+    callTrace () {
+      this.tracer.trace()
+    }
+  }
+
+  const originalProps = {
+    some: 'val'
+  }
+  const secondaryProps = {
+    anther: 'val'
+  }
+
+  const originalParent = new OriginalParent()
+  const secondaryParent = new SecondaryParent()
+  const child = originalParent.createChild()
+  child.callTrace()
+  child.tracer.setParent(secondaryParent.tracer)
+  child.callTrace()
+})
+
+test('setParent with null, removed the parent', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  let calls = 0
+  setTraceFunction(({ object, parentObject }) => {
+    calls += 1
+    if (calls === 1) t.alike(parentObject.props, someProps)
+    if (calls === 2) t.absent(parentObject)
+  })
+
+  class Parent {
+    constructor () {
+      this.tracer = createTracer(this, { props: someProps })
+    }
+
+    createChild () {
+      return new Child(this.tracer)
+    }
+  }
+
+  class Child {
+    constructor (parentTracer) {
+      this.tracer = createTracer(this, { parent: parentTracer })
+    }
+
+    callTrace () {
+      this.tracer.trace()
+    }
+  }
+
+  const someProps = {
+    some: 'val'
+  }
+
+  const parent = new Parent()
+  const child = parent.createChild()
+  child.callTrace()
+  child.tracer.setParent()
+  child.callTrace()
+})
+
+test('setParent called when not tracing does not throw', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  const mod1 = new SomeModule()
+  const mod2 = new SomeModule()
+  t.execution(() => {
+    mod2.callSetParent(mod1.tracer)
+  })
+})
