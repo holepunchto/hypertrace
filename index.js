@@ -98,6 +98,8 @@ class NoTracingClass {
   }
 
   trace () { /* noop */ }
+
+  setParent () { /* noop */ }
 }
 
 const noTracing = new NoTracingClass()

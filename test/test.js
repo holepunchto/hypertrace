@@ -636,3 +636,14 @@ test('setParent with null, removed the parent', t => {
   child.tracer.setParent()
   child.callTrace()
 })
+
+test('setParent called when not tracing does not throw', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  const mod1 = new SomeModule()
+  const mod2 = new SomeModule()
+  t.execution(() => {
+    mod2.callSetParent(mod1.tracer)
+  })
+})
