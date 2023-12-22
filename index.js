@@ -45,6 +45,8 @@ class Hypertrace {
       return
     }
 
+    // CHECK IF CACHED ERROR STACK, THEN FETCH THAT
+    // DO NOT CACHE object, parentObject, or caller
     const errorToGetContext = new Error()
     const callLine = errorToGetContext.stack.split('\n')[2]
     const re = /.*at (.+) \((?:file:\/:\/)?(.+):(\d+):(\d+)\)/
@@ -57,7 +59,7 @@ class Hypertrace {
     const object = {
       className: this.className,
       id: this.objectId,
-      props: this.props,
+      props: this.props && { ...this.props },
       ctx: this.ctx
     }
     const caller = {
@@ -65,9 +67,8 @@ class Hypertrace {
       filename,
       line: Number(line),
       column: Number(column),
-      props
+      props: props && { ...props }
     }
-
     const traceArgs = {
       object,
       parentObject: this.parentObject,

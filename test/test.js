@@ -503,3 +503,26 @@ test('Using same cacheId in different tracers does not pass same args', t => {
 
   mod2.callTrace('sameCachedId')
 })
+
+test('Passed opts map to trace function is not the same as the one passed to .trace()', t => {
+  t.teardown(teardown)
+  t.plan(4)
+
+  setTraceFunction(({ object, caller }) => {
+    t.is(object.props.some, 'val')
+    t.is(caller.props.another, 'val')
+    object.props.some = 'woah woah this is not val'
+    caller.props.another = 'woah woah this is not val'
+  })
+
+  const someObjectProps = {
+    some: 'val'
+  }
+  const someTraceProps = {
+    another: 'val'
+  }
+  const mod = new SomeModule(someObjectProps)
+  mod.callTrace(someTraceProps)
+  t.is(someObjectProps.some, 'val')
+  t.is(someTraceProps.another, 'val')
+})
