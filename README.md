@@ -2,6 +2,8 @@
 
 Add tracing and insights to classes. One of the goals of the module is that there is close to zero overhead when tracing is not enabled. This is achieved by not enabling tracing on objects created before tracing was enabled.
 
+Similarly if caching is enabled then there is almost zero overhead while tracing.
+
 There is support for Prometheus/Grafana through [hypertrace-prometheus](https://github.com/holepunchto/hypertrace-prometheus) to get better visual insights into an application's behavior.
 
 ## Installation
@@ -58,13 +60,12 @@ import { setTraceFunction } from 'hypertrace'
 
 // Log everytime .trace() is being called.
 // Important to call `setTraceFunction` BEFORE objects are instantiated and calls `createTracer`
-setTraceFunction(({ object, parentObject, caller, args, customProperties }) => {
+setTraceFunction(({ cacheId, caller, object, parentObject }) => {
   console.log({
+    cacheId,
+    caller,
     object,
     parentObject,
-    caller,
-    args,
-    customProperties
   })
 })
 
@@ -74,31 +75,28 @@ child.foo(123)
 
 /*
   Prints out:
-  {
-    object: {
-      className: 'Child',
-      id: 1,
-      props: {
-        another: 'value'
-      }
-    },
-    parentObject: {
-      className: 'SomeModule',
-      id: 1,
-      props: {
-        some: 'property'
-      }
-    },
-    caller: {
-      functionName: 'foo',
-      filename: '/Users/.../Some.js',
-      line: 29,
-      column: 17,
-      props: {
-        val: 123
-      }
-    }
+{
+  cacheId: null,
+  caller: {
+    functionName: 'foo',
+    filename: '/Users/.../app.js',
+    line: 28, // The line where .trace() is being called
+    column: 19,
+    props: { val: 123 }
+  },
+  object: {
+    className: 'Child',
+    id: 1,
+    props: { another: 'value' },
+    ctx: Child { tracer: [Hypertrace] }
+  },
+  parentObject: {
+    className: 'SomeModule',
+    id: 1,
+    props: { some: 'property' },
+    ctx: SomeModule { tracer: [Hypertrace] }
   }
+}
 */
 ```
 

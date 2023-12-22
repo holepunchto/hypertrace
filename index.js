@@ -69,6 +69,7 @@ class Hypertrace {
     }
 
     traceFunction({
+      cacheId: cacheId || null,
       object,
       parentObject: this.parentObject,
       caller

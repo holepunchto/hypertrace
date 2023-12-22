@@ -526,3 +526,19 @@ test('Passed opts map to trace function is not the same as the one passed to .tr
   t.is(someObjectProps.some, 'val')
   t.is(someTraceProps.another, 'val')
 })
+
+test('cacheId is passed to trace function', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  let calls = 0
+  setTraceFunction(({ cacheId }) => {
+    calls += 1
+    if (calls === 1) t.is(cacheId, 'someCacheId')
+    if (calls === 2) t.is(cacheId, null)
+  })
+
+  const mod = new SomeModule()
+  mod.callTrace('someCacheId')
+  mod.callTrace()
+})
