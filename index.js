@@ -41,20 +41,20 @@ class Hypertrace {
     const shouldTrace = traceFunction
     if (!shouldTrace) return
 
-    let [cacheId, props] = args
-    const hasTraceIdInArgs = typeof cacheId === 'string'
+    let [id, props] = args
+    const hasTraceIdInArgs = typeof id === 'string'
     if (!hasTraceIdInArgs) {
-      props = cacheId
-      cacheId = null
+      props = id
+      id = null
     }
 
     const currentObjectState = objectState.get(this.ctx.constructor)
-    let stack = cacheId && currentObjectState.stacktraceCache.get(cacheId)
+    let stack = id && currentObjectState.stacktraceCache.get(id)
     const hasCachedStacktrace = !!stack
     if (!hasCachedStacktrace) {
       const errorToGetContext = new Error()
       stack = errorToGetContext.stack
-      currentObjectState.stacktraceCache.set(cacheId, stack)
+      currentObjectState.stacktraceCache.set(id, stack)
     }
 
     const callLine = stack.split('\n')[2]
@@ -80,7 +80,7 @@ class Hypertrace {
     }
 
     traceFunction({
-      cacheId: cacheId || null,
+      id: id || null,
       object,
       parentObject: this.parentObject,
       caller

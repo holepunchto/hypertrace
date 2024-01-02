@@ -410,7 +410,7 @@ test('ctx is passed in parentObject', t => {
   child.callTrace()
 })
 
-test('Using cacheId speeds up trace calls', t => {
+test('Using id speeds up trace calls', t => {
   t.teardown(teardown)
   t.plan(1)
 
@@ -426,14 +426,14 @@ test('Using cacheId speeds up trace calls', t => {
 
   const start2 = Date.now()
   for (let i = 0; i < callsCount; i++) {
-    mod.callTrace('someCacheId')
+    mod.callTrace('someId')
   }
   const timeWithCache = Date.now() - start2
 
   t.ok(timeWithCache < timeWithoutCache, `Doing ${callsCount} calls. Without cache: ${timeWithoutCache}ms. With cache: ${timeWithCache}ms.`)
 })
 
-test('Using cacheId together with opts', t => {
+test('Using id together with opts', t => {
   t.teardown(teardown)
   t.plan(2)
 
@@ -446,11 +446,11 @@ test('Using cacheId together with opts', t => {
   }
 
   const mod = new SomeModule()
-  mod.callTrace('someCacheId', someProps)
-  mod.callTrace('someCacheId', someProps)
+  mod.callTrace('someId', someProps)
+  mod.callTrace('someId', someProps)
 })
 
-test('Using cacheId together with opts, will not cache the passed props', t => {
+test('Using id together with opts, will not cache the passed props', t => {
   t.teardown(teardown)
   t.plan(3)
 
@@ -470,12 +470,12 @@ test('Using cacheId together with opts, will not cache the passed props', t => {
   }
 
   const mod = new SomeModule()
-  mod.callTrace('someCacheId', someProps1)
-  mod.callTrace('someCacheId', someProps2)
-  mod.callTrace('someCacheId')
+  mod.callTrace('someId', someProps1)
+  mod.callTrace('someId', someProps2)
+  mod.callTrace('someId')
 })
 
-test('Using same cacheId in different tracers does not pass same args', t => {
+test('Using same id in different tracers does not pass same args', t => {
   t.teardown(teardown)
   t.plan(4)
 
@@ -527,19 +527,19 @@ test('Passed opts map to trace function is not the same as the one passed to .tr
   t.is(someTraceProps.another, 'val')
 })
 
-test('cacheId is passed to trace function', t => {
+test('id is passed to trace function', t => {
   t.teardown(teardown)
   t.plan(2)
 
   let calls = 0
-  setTraceFunction(({ cacheId }) => {
+  setTraceFunction(({ id }) => {
     calls += 1
-    if (calls === 1) t.is(cacheId, 'someCacheId')
-    if (calls === 2) t.is(cacheId, null)
+    if (calls === 1) t.is(id, 'someId')
+    if (calls === 2) t.is(id, null)
   })
 
   const mod = new SomeModule()
-  mod.callTrace('someCacheId')
+  mod.callTrace('someId')
   mod.callTrace()
 })
 

@@ -60,9 +60,9 @@ import { setTraceFunction } from 'hypertrace'
 
 // Log everytime .trace() is being called.
 // Important to call `setTraceFunction` BEFORE objects are instantiated and calls `createTracer`
-setTraceFunction(({ cacheId, caller, object, parentObject }) => {
+setTraceFunction(({ id, caller, object, parentObject }) => {
   console.log({
-    cacheId,
+    id,
     caller,
     object,
     parentObject,
@@ -76,7 +76,7 @@ child.foo(123)
 /*
   Prints out:
 {
-  cacheId: null,
+  id: null,
   caller: {
     functionName: 'foo',
     filename: '/Users/.../app.js',
@@ -119,15 +119,15 @@ class SomeClass {
 }
 ```
 
-#### .trace([cacheId], [props])
+#### .trace([id], [props])
 
 If the trace function has been set with `setTraceFunction`, then it is called.
 
 Note: If the trace function has not been set, there is no overhead in calling this.
 
-Note: If `.trace()` is called _very_ often then there can be some measurable overhead if the trace function has been set. To avoid this overhead pass `cacheId`, which then always calls the trace function with the same cached parameters. `props` will always be passed.
+Note: If `.trace()` is called _very_ often then there can be some measurable overhead if the trace function has been set. To avoid this overhead pass `id`, which then always calls the trace function with the same cached parameters. `props` will always be passed.
 
-- **cacheId**: (optional) A cacheId (string) that can be used to significantly speed up tracing, by caching returned resuls.
+- **id**: (optional) A id (string) that can be used to significantly speed up tracing, by caching returned resuls.
 - **props**: (optional) A map of properties that's passed to the trace function
 
 ``` js
