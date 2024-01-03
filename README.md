@@ -58,6 +58,9 @@ Then add `.setTraceFunction()` when traces are needed. It's important that this 
 import SomeModule from 'some-module'
 import { setTraceFunction } from 'hypertrace'
 
+// # IMPORTANT #  call either `setTraceFunction` or `setMemoryFunction` BEFORE objects
+// # IMPORTANT #  are instantiated and `createTracer` is called
+
 // Log everytime .trace() is being called.
 // Important to call `setTraceFunction` BEFORE objects are instantiated and calls `createTracer`
 setTraceFunction(({ id, caller, object, parentObject }) => {
@@ -67,6 +70,66 @@ setTraceFunction(({ id, caller, object, parentObject }) => {
     object,
     parentObject,
   })
+  /*
+    Prints out:
+    {
+      caller: {
+        functionName: 'foo',
+        filename: '/Users/.../app.js',
+        line: 29,
+        column: 19,
+        props: {
+          val: 123
+        }
+      },
+      object: {
+        className: 'Child',
+        id: 1,
+        props: {
+          another: 'value'
+        },
+        ctx: Child { ... }
+      },
+      parentObject: {
+        className: 'SomeModule',
+        id: 1,
+        props: {
+          some: 'property'
+        },
+        ctx: SomeModule { ... }
+      }
+    }
+  */
+})
+
+setMemoryFunction(({ type, instanceCount, object, parentObject }) => {
+  console.log({
+    type,
+    instanceCount,
+    object,
+    parentObject
+  })
+  /*
+    Prints out:
+    {
+      type: 'alloc', // type=free when object is garbage collected
+      instanceCount: 1, // how many instances of this type is alive right now
+      object: {
+        className: 'Child',
+        id: 1,
+        props: {
+          another: 'value'
+        }
+      },
+      parentObject: {
+        className: 'SomeModule2',
+        id: 1,
+        props: {
+          some: 'property'
+        }
+      }
+    }
+  */
 })
 
 const mod = new SomeModule() // Inherently calls `createTracer`
@@ -168,16 +231,31 @@ The `props` passed when this instance was created.
 
 The `ctx` of this instance. If `createTracer(this)` then `ctx = this`.
 
-### setTraceFunction(({ object, parentObject, caller }) => { ... })
+### setTraceFunction(({ caller, object, parentObject }) => { ... })
 
 Set a global trace function that is invoked everytime `.trace()` is being called.
 
-**Important**: Tracing is only enabled for objects created after `setTraceFunction` is called.
+**Important**: Tracing is only enabled for objects created after either `setTraceFunction` or `setMemoryFunction` is called.
 
-- **object**: Contains `ctx`, `className`, `id`, and `props`
-- **parentObject**: If hypertrace was initiated with `parent` then it contains `ctx`, `className`, `id`, and `props`
 - **caller**: Contains `functionName`, `filename`, `line`, `column`, and `props
+- **object**: Contains `ctx`, `className`, `id`, and `props`
+- **parentObject**: If `createTracer` was called with `parent` then it contains `ctx`, `className`, `id`, and `props`
 
 ### clearTraceFunction()
 
-Remove the global trace function. Calls to `createTracer` after this will return a dummy object to reduce runtime overhead.
+Remove the global trace function. If both trace and memory functions have been cleared, then subsequent calls to `createTracer` will return a dummy object to reduce runtime overhead.
+
+### setMemoryFunction(({ type, instanceCount, object, parentObject }) => { ... })
+
+Set a global memory function that is invoked everytime a tracer is created (with `createTracer()`) or if it's being garbage collected. The type is either `alloc` when the tracer is created or `free` when it's being garbage collected.
+
+**Important**: Memory capturing is only enabled on objects created after `setMemoryFunction` is called.
+
+- **type**: Contains `alloc` or `free` depending on whether the object is being created or garbage collected
+- **instanceCount**: The number of instances of this object's type that's still alive
+- **object**: Contains `className`, `id`, and `props`
+- **parentObject**: If `createTracer` was called with `parent` then it contains `className`, `id`, and `props`
+
+### clearMemmoryFunction()
+
+Remove the global memory function. If both memory and trace functions have been cleared, then subsequent calls to `createTracer` will return a dummy object to reduce runtime overhead.
