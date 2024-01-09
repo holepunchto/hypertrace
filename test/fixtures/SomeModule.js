@@ -1,4 +1,4 @@
-const { createTracer } = require('../../')
+const { createTracer, createTimer } = require('../../')
 
 module.exports = class SomeModule {
   constructor (props) {
@@ -31,5 +31,13 @@ module.exports = class SomeModule {
 
   getTracerProps () {
     return this.tracer.props
+  }
+
+  async callTimer (name, timeToRun) {
+    const stop = createTimer(name)
+    await new Promise(resolve => setTimeout(() => {
+      stop()
+      resolve()
+    }, timeToRun))
   }
 }

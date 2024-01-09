@@ -172,7 +172,7 @@ The `ctx` of this instance. If `createTracer(this)` then `ctx = this`.
 
 Set a global trace function that is invoked everytime `.trace()` is being called.
 
-**Important**: Tracing is only enabled for objects created after `setTraceFunction` is called.
+**Important**: Tracing is only enabled for objects created after `setTraceFunction` has been called.
 
 - **object**: Contains `ctx`, `className`, `id`, and `props`
 - **parentObject**: If hypertrace was initiated with `parent` then it contains `ctx`, `className`, `id`, and `props`
@@ -181,3 +181,32 @@ Set a global trace function that is invoked everytime `.trace()` is being called
 ### clearTraceFunction()
 
 Remove the global trace function. Calls to `createTracer` after this will return a dummy object to reduce runtime overhead.
+
+### createTimer(name)
+
+Timers are used for debugging cases where timing could matter, similar to how `console.time` is used.
+
+Returns a `stop` function that, when called, stops the timer and calls the timer function if it has been set. The timer function is called with the name of the timer and the execution time.
+
+``` js
+const stopTimer = createTimer('my-expensive-check')
+
+// ... do all the expensive things
+
+stopTimer()
+```
+
+- **name**: Name of the timer. Passed to the timer function.
+
+### callTimer(name, ms)
+
+Instead of creating a timer using `createTimer` this method can be used if the time is being handled internally. If the timer function has been set, then it is invoked with `(name, ms)`.
+
+### setTimerFunction((name, ms) => { ... })
+
+Set a global timer funciton that is invoked whenever a timer has been stopped.
+
+**Important**: Timers are only enabled after `setTimerFunction` has been called.
+
+- **name**: Name of the timer
+- **ms**: Execution time of the timer, between when it was created and its stop function was called.
