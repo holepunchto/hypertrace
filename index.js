@@ -104,18 +104,21 @@ class NoTracingClass {
 
 const noTracing = new NoTracingClass()
 
-module.exports = {
-  setTraceFunction: fn => {
+const hypertrace = {
+  enabled: false,
+  setTraceFunction (fn) {
     global[traceFunctionSymbol] = fn
+    hypertrace.enabled = !!fn
   },
-  clearTraceFunction: () => {
-    global[traceFunctionSymbol] = undefined
+  clearTraceFunction () {
+    hypertrace.setTraceFunction(undefined)
   },
-  createTracer: (ctx, opts) => {
+  createTracer (ctx, opts) {
     // If the trace function is not set, then the returned class cannot trace.
     // This is done for speed.
-    const isTracing = !!global[traceFunctionSymbol]
-    if (!isTracing) return noTracing
+    if (!hypertrace.enabled) return noTracing
     return new Hypertrace(ctx, opts)
   }
 }
+
+module.exports = hypertrace
