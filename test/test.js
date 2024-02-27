@@ -1,6 +1,5 @@
 const test = require('brittle')
-const hypertrace = require('../')
-const { setTraceFunction, clearTraceFunction, createTracer } = hypertrace
+const { setTraceFunction, clearTraceFunction, createTracer } = require('../')
 const SomeModule = require('./fixtures/SomeModule')
 
 function teardown () {
