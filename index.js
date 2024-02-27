@@ -36,12 +36,11 @@ class Hypertrace {
         }
   }
 
-  trace (...args) {
+  trace (id, props) {
     const traceFunction = global[traceFunctionSymbol]
     const shouldTrace = traceFunction
     if (!shouldTrace) return
 
-    let [id, props] = args
     const hasTraceIdInArgs = typeof id === 'string'
     if (!hasTraceIdInArgs) {
       props = id
