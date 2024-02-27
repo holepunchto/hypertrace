@@ -6,10 +6,10 @@ class Hypertrace {
     if (!ctx) throw new Error('Context required, see hypertrace documentation')
 
     const { parent, props } = opts
+    this.enabled = true
     this.ctx = ctx
     this.className = ctx.constructor.name
     this.props = props || null
-    this.enabled = true
     this.parentObject = !parent
       ? null
       : {
@@ -93,6 +93,7 @@ class NoTracingClass {
     this.ctx = null
     this.className = null
     this.props = null
+    this.parentObject = null
     this.objectId = null
   }
 
@@ -104,13 +105,11 @@ class NoTracingClass {
 const noTracing = new NoTracingClass()
 
 const hypertrace = {
-  enabled: false,
   setTraceFunction (fn) {
     global[traceFunctionSymbol] = fn
-    hypertrace.enabled = !!fn
   },
   clearTraceFunction () {
-    hypertrace.setTraceFunction(undefined)
+    setTraceFunction(undefined)
   },
   createTracer (ctx, opts) {
     // If the trace function is not set, then the returned class cannot trace.
@@ -120,4 +119,26 @@ const hypertrace = {
   }
 }
 
-module.exports = hypertrace
+let enabled = false
+
+module.exports = {
+  setTraceFunction,
+  clearTraceFunction,
+  createTracer
+}
+
+function setTraceFunction (fn) {
+  global[traceFunctionSymbol] = fn
+  enabled = !!fn
+}
+
+function clearTraceFunction () {
+  setTraceFunction(undefined)
+}
+
+function createTracer (ctx, opts) {
+  // If the trace function is not set, then the returned class cannot trace.
+  // This is done for speed.
+  if (!enabled) return noTracing
+  return new Hypertrace(ctx, opts)
+}

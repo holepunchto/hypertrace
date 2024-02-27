@@ -181,11 +181,3 @@ Set a global trace function that is invoked everytime `.trace()` is being called
 ### clearTraceFunction()
 
 Remove the global trace function. Calls to `createTracer` after this will return a dummy object to reduce runtime overhead.
-
-## Properties
-
-### enabled
-
-When a trace function is set, then `enabled` is true. Default is false.
-
-This is useful for changing behavior if a trace is running.
