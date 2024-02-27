@@ -1,5 +1,6 @@
 const test = require('brittle')
-const { setTraceFunction, clearTraceFunction, createTracer } = require('../')
+const hypertrace = require('../')
+const { setTraceFunction, clearTraceFunction, createTracer } = hypertrace
 const SomeModule = require('./fixtures/SomeModule')
 
 function teardown () {
@@ -646,4 +647,23 @@ test('setParent called when not tracing does not throw', t => {
   t.execution(() => {
     mod2.callSetParent(mod1.tracer)
   })
+})
+
+test('setTraceFunction sets "enabled" to true', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  t.is(hypertrace.enabled, false)
+  setTraceFunction(() => { })
+  t.is(hypertrace.enabled, true)
+})
+
+test('clearTraceFunction sets "enabled" to false', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  setTraceFunction(() => { })
+  t.is(hypertrace.enabled, true)
+  clearTraceFunction()
+  t.is(hypertrace.enabled, false)
 })
