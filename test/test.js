@@ -1,9 +1,16 @@
 const test = require('brittle')
-const { setTraceFunction, clearTraceFunction, createTracer } = require('../')
 const SomeModule = require('./fixtures/SomeModule')
+const {
+  setTraceFunction,
+  clearTraceFunction,
+  setMemoryFunction,
+  clearMemoryFunction,
+  createTracer
+} = require('../')
 
 function teardown () {
   clearTraceFunction()
+  clearMemoryFunction()
 }
 
 test('Caller is set for trace function', t => {
@@ -646,4 +653,92 @@ test('setParent called when not tracing does not throw', t => {
   t.execution(() => {
     mod2.callSetParent(mod1.tracer)
   })
+})
+
+test('Memory function is called when obj is created and garbage collected and has set type, instanceCount, and object', async t => {
+  t.teardown(teardown)
+  t.plan(12)
+
+  let hasBeenCreated = false
+  setMemoryFunction(({ type, instanceCount, object, parentObject }) => {
+    if (!hasBeenCreated) {
+      hasBeenCreated = true
+      t.is(type, 'alloc')
+      t.is(instanceCount, 1)
+      t.is(object.className, 'SomeClass')
+      t.is(object.id, 1)
+      t.is(object.props, null)
+      t.is(parentObject, null)
+    } else {
+      t.is(type, 'free')
+      t.is(instanceCount, 0)
+      t.is(object.className, 'SomeClass')
+      t.is(object.id, 1)
+      t.is(object.props, null)
+      t.is(parentObject, null)
+    }
+  })
+
+  class SomeClass {
+    constructor () {
+      this.tracer = createTracer(this)
+    }
+  }
+
+  const objs = {}
+  objs.obj = new SomeClass() // Triggers memoryFunction with type=alloc
+  delete objs.obj
+  global.gc() // Triggers memoryFunction with type=free
+})
+
+test('If tracer is created with props, they are passed to memory function', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  setMemoryFunction(({ object }) => {
+    t.alike(object.props, someProps)
+  })
+
+  const someProps = {
+    prop: 'val'
+  }
+
+  new SomeModule(someProps) // eslint-disable-line no-new
+  global.gc()
+})
+
+test('If tracer is created with parentObject, it is passed as parentObject', t => {
+  t.teardown(teardown)
+  t.plan(6)
+
+  setMemoryFunction(({ type, object, parentObject }) => {
+    const isChild = object.className === 'Child'
+    if (!isChild) return
+    t.is(parentObject.className, 'Parent')
+    t.is(parentObject.id, 1)
+    t.alike(parentObject.props, someParentProps)
+  })
+
+  class Parent {
+    constructor () {
+      this.tracer = createTracer(this, { props: someParentProps })
+    }
+
+    createChild () {
+      return new Child(this.tracer)
+    }
+  }
+
+  class Child {
+    constructor (parentTracer) {
+      this.tracer = createTracer(this, { parent: parentTracer })
+    }
+  }
+
+  const someParentProps = {
+    some: 'val'
+  }
+  const parent = new Parent()
+  parent.createChild()
+  global.gc()
 })

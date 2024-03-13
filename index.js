@@ -1,5 +1,8 @@
 const objectState = new Map()
+const objectInstanceCount = new WeakMap()
 const traceFunctionSymbol = Symbol.for('hypertrace.traceFunction')
+const memoryFunctionSymbol = Symbol.for('hypertrace.memoryFunction')
+const gcRegistrySymbol = Symbol.for('hypertrace.gcRegistry')
 
 class Hypertrace {
   constructor (ctx, opts = { }) {
@@ -23,6 +26,48 @@ class Hypertrace {
     currentObjectState.id += 1
     this.objectId = currentObjectState.id
     objectState.set(ctx.constructor, currentObjectState)
+
+    const currentInstanceCount = objectInstanceCount.get(ctx.constructor) || 0
+    objectInstanceCount.set(ctx.constructor, currentInstanceCount + 1)
+
+    const memoryFunction = global[memoryFunctionSymbol]
+    const gcRegistry = global[gcRegistrySymbol]
+    const shouldHandleMemory = memoryFunction && gcRegistry
+    if (!shouldHandleMemory) return
+
+    gcRegistry.register(this, {
+      // Note: There cannot be any references to `this`, or `parent` here because they might've
+      // been gc'ed, and then the FinalizationRegistry chooses not to fire the event
+      constructor: ctx.constructor,
+      object: {
+        className: this.className,
+        id: this.objectId,
+        props: this.props
+      },
+      parentObject: !parent
+        ? null
+        : {
+            className: parent.className,
+            id: parent.objectId,
+            props: parent.props
+          }
+    })
+    memoryFunction({
+      type: 'alloc',
+      instanceCount: currentInstanceCount + 1,
+      object: {
+        className: this.className,
+        id: this.objectId,
+        props: this.props
+      },
+      parentObject: !parent
+        ? null
+        : {
+            className: parent.className,
+            id: parent.objectId,
+            props: parent.props
+          }
+    })
   }
 
   setParent (parentTracer) {
@@ -104,6 +149,24 @@ class NoTracingClass {
 
 const noTracing = new NoTracingClass()
 
+function createGcRegistry () {
+  return new FinalizationRegistry(({ constructor, object, parentObject }) => {
+    const currentInstanceCount = objectInstanceCount.get(constructor) || 0
+    objectInstanceCount.set(constructor, currentInstanceCount - 1)
+
+    const memoryFunction = global[memoryFunctionSymbol]
+    const shouldCallMmemoryFunction = !!memoryFunction
+    if (shouldCallMmemoryFunction) {
+      memoryFunction({
+        type: 'free',
+        instanceCount: currentInstanceCount - 1,
+        object,
+        parentObject
+      })
+    }
+  })
+}
+
 module.exports = {
   setTraceFunction: fn => {
     global[traceFunctionSymbol] = fn
@@ -111,10 +174,18 @@ module.exports = {
   clearTraceFunction: () => {
     global[traceFunctionSymbol] = undefined
   },
+  setMemoryFunction: fn => {
+    global[memoryFunctionSymbol] = fn
+    global[gcRegistrySymbol] = global[gcRegistrySymbol] || createGcRegistry()
+  },
+  clearMemoryFunction: () => {
+    global[memoryFunctionSymbol] = undefined
+    global[gcRegistrySymbol] = undefined
+  },
   createTracer: (ctx, opts) => {
-    // If the trace function is not set, then the returned class cannot trace.
+    // If either the trace or memory function is not set, then the returned class cannot trace.
     // This is done for speed.
-    const isTracing = !!global[traceFunctionSymbol]
+    const isTracing = global[traceFunctionSymbol] || global[memoryFunctionSymbol]
     if (!isTracing) return noTracing
     return new Hypertrace(ctx, opts)
   }
