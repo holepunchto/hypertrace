@@ -7,8 +7,8 @@
     "test": "standard && node --expose-gc test/test.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "Apache-2.0"",
+  "author": "Holepunch Inc",
+  "license": "Apache-2.0",
   "devDependencies": {
     "brittle": "^3.3.2",
     "standard": "^17.1.0"
