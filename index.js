@@ -1,5 +1,6 @@
 const objectState = new Map()
 const traceFunctionSymbol = Symbol.for('hypertrace.traceFunction')
+const timerFunctionSymbol = Symbol.for('hypertrace.timerFunction')
 
 class Hypertrace {
   constructor (ctx, opts = { }) {
@@ -104,6 +105,10 @@ class NoTracingClass {
 
 const noTracing = new NoTracingClass()
 
+function noTimerStopper () {
+  /* noop */
+}
+
 module.exports = {
   setTraceFunction: fn => {
     globalThis[traceFunctionSymbol] = fn
@@ -117,5 +122,31 @@ module.exports = {
     const isTracing = !!globalThis[traceFunctionSymbol]
     if (!isTracing) return noTracing
     return new Hypertrace(ctx, opts)
+  },
+  createTimer: name => {
+    const timerFunction = global[timerFunctionSymbol]
+    if (!timerFunction) return noTimerStopper
+
+    const startTime = Date.now()
+    let hasBeenStopped = false
+
+    return () => {
+      if (hasBeenStopped) return // Guarantee that the stop function can only be called once
+      hasBeenStopped = true
+
+      const ms = Date.now() - startTime
+      timerFunction(name, ms)
+    }
+  },
+  callTimer: (name, ms) => {
+    const timerFunction = global[timerFunctionSymbol]
+    if (!timerFunction) return
+    timerFunction(name, ms)
+  },
+  setTimerFunction: fn => {
+    global[timerFunctionSymbol] = fn
+  },
+  clearTimerFunction: () => {
+    global[timerFunctionSymbol] = undefined
   }
 }

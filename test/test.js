@@ -1,9 +1,10 @@
 const test = require('brittle')
-const { setTraceFunction, clearTraceFunction, createTracer } = require('../')
+const { setTraceFunction, clearTraceFunction, createTracer, setTimerFunction, clearTimerFunction, createTimer, callTimer } = require('../')
 const SomeModule = require('./fixtures/SomeModule')
 
 function teardown () {
   clearTraceFunction()
+  clearTimerFunction()
 }
 
 test('Caller is set for trace function', t => {
@@ -646,4 +647,76 @@ test('setParent called when not tracing does not throw', t => {
   t.execution(() => {
     mod2.callSetParent(mod1.tracer)
   })
+})
+
+test('Using timerFunction sets a time', async t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  setTimerFunction((name, ms) => {
+    t.is(name, 'foobar')
+    t.ok(ms >= timeToWait)
+  })
+
+  const timeToWait = 100
+  const someModule = new SomeModule()
+  await someModule.callTimer('foobar', timeToWait)
+})
+
+test('Clearing timerFunction does not call it', async t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTimerFunction(() => {
+    t.pass()
+  })
+
+  const someModule = new SomeModule()
+  await someModule.callTimer('foobar', 10)
+  clearTimerFunction()
+  await someModule.callTimer('foobar', 10)
+})
+
+test('Calling the stop timer function several times only invokes the timer function once', async t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTimerFunction(() => {
+    t.pass()
+  })
+
+  class Foo {
+    bar () {
+      const stop = createTimer('foo')
+      stop() // Will invoke the timer function
+      stop() // Should not invoke the timer function
+    }
+  }
+
+  const foo = new Foo()
+  foo.bar()
+})
+
+test('callTimer invokes the timer function', t => {
+  t.teardown(teardown)
+  t.plan(2)
+
+  setTimerFunction((name, ms) => {
+    t.is(name, 'foobar')
+    t.is(ms, 123)
+  })
+
+  callTimer('foobar', 123)
+})
+
+test('callTimer without timer function does not error', t => {
+  t.teardown(teardown)
+  t.plan(1)
+
+  setTimerFunction(() => {
+    t.pass()
+  })
+  callTimer('foobar', 123) // Will invoke the timer function
+  clearTimerFunction()
+  callTimer('foobar', 123) // Should not invoke the timer function
 })
