@@ -1,5 +1,5 @@
 const test = require('brittle')
-const { setTraceFunction, clearTraceFunction, createTracer } = require('../')
+const { setTraceFunction, clearTraceFunction, createTracer, isTracing } = require('../')
 const SomeModule = require('./fixtures/SomeModule')
 
 function teardown () {
@@ -646,4 +646,12 @@ test('setParent called when not tracing does not throw', t => {
   t.execution(() => {
     mod2.callSetParent(mod1.tracer)
   })
+})
+
+test('isTracing returns true if trace function has been setted', t => {
+  t.teardown(teardown)
+  t.plan(2)
+  t.ok(!isTracing())
+  setTraceFunction(() => {})
+  t.ok(isTracing())
 })

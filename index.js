@@ -104,6 +104,10 @@ class NoTracingClass {
 
 const noTracing = new NoTracingClass()
 
+function isTracing () {
+  return !!globalThis[traceFunctionSymbol]
+}
+
 module.exports = {
   setTraceFunction: fn => {
     globalThis[traceFunctionSymbol] = fn
@@ -114,8 +118,8 @@ module.exports = {
   createTracer: (ctx, opts) => {
     // If the trace function is not set, then the returned class cannot trace.
     // This is done for speed.
-    const isTracing = !!globalThis[traceFunctionSymbol]
-    if (!isTracing) return noTracing
+    if (!isTracing()) return noTracing
     return new Hypertrace(ctx, opts)
-  }
+  },
+  isTracing
 }
